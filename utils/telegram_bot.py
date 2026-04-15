@@ -690,8 +690,7 @@ async def _process_bookout(
         site = details['site_name']
         await bot.send_message(
             chat_id,
-            f"Is '{site}' an FMAS site or a direct ATEC site?
-"
+            f"Is '{site}' an FMAS site or a direct ATEC site?\n"
             "Reply 1 for FMAS, or 2 for ATEC direct.",
         )
         return
