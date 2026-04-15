@@ -20,14 +20,17 @@ SCOPES = [
 ]
 
 
-def get_credentials():
+def get_credentials(scopes=None):  # Add 'scopes=None' here
     """Fetches credentials from local file or Railway Base64 env var."""
-    scopes = [
-        'https://www.googleapis.com/auth/drive',
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/documents',
-        'https://www.googleapis.com/auth/gmail.compose'
-    ]
+    
+    # Use the provided scopes or fall back to your project defaults
+    if scopes is None:
+        scopes = [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/documents',
+            'https://www.googleapis.com/auth/gmail.compose'
+        ]
 
     # Check for local file (Your Desktop)
     if os.path.exists("service_account.json"):
@@ -44,7 +47,6 @@ def get_credentials():
         )
 
     raise FileNotFoundError("No Google credentials found (file or env var)!")
-
 
 def get_drive_service(service_account_path: str | None = None):
     creds = get_credentials(service_account_path)
