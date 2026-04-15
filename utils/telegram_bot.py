@@ -111,7 +111,7 @@ def is_allowed(user_id: int) -> bool:
 
 def _get_drive():
     from utils.auth import get_drive_service
-    return get_drive_service(os.getenv("SERVICE_ACCOUNT_PATH"))
+    return get_drive_service()
 
 
 def _drive_id() -> str:
@@ -672,38 +672,18 @@ async def _process_bookout(
     state["site_name"] = details["site_name"]
     state["unit_number"] = details["unit_number"]
 
-    # ---- 3b. Determine site type (FMAS vs ATEC direct) ----
-    # Look up whether the site already exists in Drive to avoid the fragile
-    # text-match fallback.  If the site is new, pause and ask the technician.
+    # ---- 4. Stock-sheet lookup per item ----
+    # Run BEFORE the site-type check so that _tmp_paths, _photo_names, and
+    # is_swap are all saved into state before any early return. This ensures
+    # _continue_after_swap_confirm has the correct data regardless of whether
+    # the user had to answer an FMAS vs ATEC prompt for a new site.
     try:
         _lookup_service = _get_drive()
-        site_type = await asyncio.to_thread(
-            lookup_site_type, _lookup_service, details["site_name"]
-        )
-    except Exception:
-        site_type = None
-
-    if site_type is None:
-        # New site — cannot determine type from Drive. Ask the user.
-        state["step"] = STEP_TYPE_SELECT
-        STATE.set(chat_id, state)
-        site = details['site_name']
-        await bot.send_message(
-            chat_id,
-            f"Is '{site}' an FMAS site or a direct ATEC site?\n"
-            "Reply 1 for FMAS, or 2 for ATEC direct.",
-        )
-        return
-    state["is_fmas"] = site_type
-
-    # ---- 4. Stock-sheet lookup per item ----
-    try:
         from utils.sheets import find_serial_number
-        service = _lookup_service
         results = []
         for it in items:
             res = await asyncio.to_thread(
-                find_serial_number, service, _drive_id(), it["serial"]
+                find_serial_number, _lookup_service, _drive_id(), it["serial"]
             )
             results.append(res)
         mark_swaps(items, results)
@@ -716,10 +696,35 @@ async def _process_bookout(
     swap_items = [it for it in items if it["is_swap"]]
     state["is_swap"] = all_swaps(items)
 
-    # Remember the downloaded paths + names for the continuation step.
+    # Save photo paths + names into state now so they survive any early return below.
     names = classify_photo_names(extractions)
     state["_tmp_paths"] = paths
     state["_photo_names"] = names
+
+    # ---- 3b. Determine site type (FMAS vs ATEC direct) ----
+    # Look up whether the site already exists in Drive to avoid the fragile
+    # text-match fallback.  If the site is new, pause and ask the technician.
+    try:
+        site_type = await asyncio.to_thread(
+            lookup_site_type, _lookup_service, details["site_name"]
+        )
+    except Exception:
+        site_type = None
+
+    if site_type is None:
+        # New site -- cannot determine type from Drive. Ask the user.
+        # State already contains _tmp_paths, _photo_names, and is_swap so
+        # _continue_after_swap_confirm can resume correctly after the reply.
+        state["step"] = STEP_TYPE_SELECT
+        STATE.set(chat_id, state)
+        site = details['site_name']
+        await bot.send_message(
+            chat_id,
+            f"Is '{site}' an FMAS site or a direct ATEC site?\n"
+            "Reply 1 for FMAS, or 2 for ATEC direct.",
+        )
+        return
+    state["is_fmas"] = site_type
 
     if swap_items:
         state["step"] = STEP_SWAP_CONFIRM

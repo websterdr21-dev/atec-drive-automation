@@ -136,7 +136,7 @@ async def telegram_webhook(request: Request):
 
 def get_drive():
     from utils.auth import get_drive_service
-    return get_drive_service(os.getenv("SERVICE_ACCOUNT_PATH"))
+    return get_drive_service()
 
 def drive_id():
     return os.getenv("SHARED_DRIVE_ID")
