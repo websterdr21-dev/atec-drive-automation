@@ -1,0 +1,29 @@
+# Dependency Folders
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.pyc
+
+# Local Credentials & Secrets
+service_account.json
+.env
+*.pem
+*.key
+
+# Large Data Files
+*.xlsx
+*.csv
+*.pdf
+*.log
+
+# Claude/GSD Internal Memory
+.claude/
+.planning/
+.git/
+
+# Media
+*.jpg
+*.jpeg
+*.png
+*.gif
