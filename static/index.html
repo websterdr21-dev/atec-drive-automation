@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ATEC Bookout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── VARIABLES ──────────────────────────────────────────── */
+:root {
+  --red:      #CC0000;
+  --red-h:    #aa0000;
+  --green:    #1a7a3c;
+  --text:     #1a1a1a;
+  --muted:    #666666;
+  --light:    #f5f5f5;
+  --border:   #e5e5e5;
+  --border-d: #d0d0d0;
+  --card:     #ffffff;
+  --input-bg: #ffffff;
+  --footer:   #2d2d2d;
+  --topbar-h: 56px;
+  --botnav-h: 64px;
+}
+
+/* ── RESET ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #f0f0f0;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ── LOGIN ──────────────────────────────────────────────── */
+#login-page {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; min-height: 100dvh;
+  background: #f0f0f0; padding: 1.5rem;
+}
+.login-box {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 16px; padding: 2.5rem 2rem;
+  width: 100%; max-width: 380px; text-align: center;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+.login-logo { display: flex; align-items: center; justify-content: center; gap: 0.65rem; margin-bottom: 0.3rem; }
+.login-brand { font-size: 2rem; font-weight: 700; color: var(--red); letter-spacing: 0.08em; }
+.login-tagline { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 2rem; }
+.login-box p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
+
+/* ── TOP BAR ────────────────────────────────────────────── */
+.top-bar {
+  position: sticky; top: 0; z-index: 100;
+  height: var(--topbar-h);
+  background: #fff; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 1rem; gap: 0.6rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.top-logo { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; }
+.top-brand { font-size: 1.3rem; font-weight: 700; color: var(--red); letter-spacing: 0.06em; }
+.top-tagline { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.08em; }
+.top-bar .sign-out-btn {
+  margin-left: auto;
+  background: none; border: 1px solid var(--border-d);
+  color: var(--muted); padding: 0.4rem 0.85rem;
+  border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+  font-family: inherit; white-space: nowrap;
+}
+.top-bar .sign-out-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ── BOTTOM NAV ─────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  height: calc(var(--botnav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #fff; border-top: 1px solid var(--border);
+  display: flex;
+  box-shadow: 0 -1px 8px rgba(0,0,0,0.07);
+}
+.bottom-nav a {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.25rem;
+  text-decoration: none; color: var(--muted);
+  font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: 0.15rem;
+}
+.bottom-nav a svg { width: 22px; height: 22px; flex-shrink: 0; }
+.bottom-nav a.active { color: var(--red); }
+.bottom-nav a.active svg { stroke: var(--red); }
+.bottom-nav a svg { stroke: var(--muted); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.15s; }
+
+/* ── PAGES ──────────────────────────────────────────────── */
+#app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.pages-wrap { flex: 1; }
+.page {
+  display: none;
+  padding: 1.25rem 1rem calc(var(--botnav-h) + env(safe-area-inset-bottom) + 1.5rem);
+  max-width: 680px; margin: 0 auto;
+}
+.page.active { display: block; }
+
+/* ── PAGE TITLE ─────────────────────────────────────────── */
+.page-title {
+  font-size: 1.25rem; font-weight: 700;
+  margin-bottom: 1.25rem; color: var(--text);
+  letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.page-title::before {
+  content: ''; display: inline-block;
+  width: 4px; height: 1.2rem; background: var(--red);
+  border-radius: 2px; flex-shrink: 0;
+}
+
+/* ── CARDS ──────────────────────────────────────────────── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.card h2 {
+  font-size: 0.9rem; font-weight: 600; color: var(--muted);
+  margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.card h2 .badge {
+  background: rgba(204,0,0,0.08); color: var(--red);
+  border: 1px solid rgba(204,0,0,0.2);
+  font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem;
+  border-radius: 20px; letter-spacing: 0.03em; text-transform: none;
+}
+
+/* ── FORM ELEMENTS ──────────────────────────────────────── */
+label {
+  display: block; font-size: 0.72rem; font-weight: 600;
+  color: var(--muted); margin-bottom: 0.35rem; margin-top: 1rem;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+label:first-child { margin-top: 0; }
+input[type=text], input[type=password], textarea, select {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1.5px solid var(--border-d);
+  color: var(--text);
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  min-height: 52px;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(204,0,0,0.1);
+}
+textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+
+/* ── SITE TYPE TOGGLE ───────────────────────────────────── */
+.site-toggle {
+  display: flex; gap: 0.6rem; margin-top: 1rem;
+}
+.site-toggle .tog {
+  flex: 1; min-height: 52px;
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+  border: 1.5px solid var(--border-d); border-radius: 8px;
+  background: #fff; color: var(--muted);
+  font-size: 0.9rem; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.site-toggle .tog.active {
+  border-color: var(--red); background: rgba(204,0,0,0.06); color: var(--red);
+}
+.site-toggle .tog svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+  padding: 0 1.3rem; height: 52px;
+  border-radius: 8px; border: none;
+  cursor: pointer; font-size: 0.95rem; font-weight: 600;
+  font-family: inherit; letter-spacing: 0.01em;
+  transition: all 0.15s; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary  { background: var(--red); color: #fff; }
+.btn-primary:hover  { background: var(--red-h); box-shadow: 0 2px 10px rgba(204,0,0,0.3); }
+.btn-secondary { background: #fff; color: var(--red); border: 1.5px solid var(--red); }
+.btn-secondary:hover { background: rgba(204,0,0,0.05); }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover { background: #155e30; }
+.btn-ghost { background: #fff; border: 1px solid var(--border-d); color: var(--muted); }
+.btn-ghost:hover { border-color: #aaa; color: var(--text); background: var(--light); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.btn-full { width: 100%; }
+.btn-row { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.1rem; }
+.btn-row .btn { width: 100%; }
+.btn-row-h { display: flex; gap: 0.6rem; margin-top: 1.1rem; flex-wrap: wrap; }
+.btn-row-h .btn { flex: 1; min-width: 0; }
+
+/* ── CONFIRM CARD ───────────────────────────────────────── */
+.confirm-card {
+  background: #fafafa; border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 8px; padding: 1rem; margin-top: 1rem;
+}
+.confirm-card table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.confirm-card td { padding: 0.4rem 0.5rem; vertical-align: top; }
+.confirm-card td:first-child {
+  color: var(--muted); width: 36%;
+  font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding-top: 0.5rem;
+}
+.confirm-card td[contenteditable]:focus {
+  outline: 1px dashed var(--red); border-radius: 3px;
+}
+
+/* ── PROGRESS STEPS ─────────────────────────────────────── */
+.steps { list-style: none; margin-top: 0.5rem; }
+.steps li {
+  padding: 0.6rem 0; font-size: 0.9rem;
+  display: flex; align-items: flex-start; gap: 0.7rem;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+  line-height: 1.4;
+}
+.steps li:last-child { border-bottom: none; }
+.steps li .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #ddd; flex-shrink: 0;
+  border: 1.5px solid #ccc; margin-top: 4px;
+}
+.steps li.done { color: var(--text); }
+.steps li.done .dot { background: var(--green); border-color: var(--green); }
+.steps li.running .dot { background: var(--red); border-color: var(--red); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+/* ── EMAIL BOX ──────────────────────────────────────────── */
+.email-box {
+  background: #fafafa; border: 1px solid var(--border);
+  border-radius: 8px; padding: 1.1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem; line-height: 1.75;
+  white-space: pre-wrap; word-break: break-word;
+  margin-top: 0.75rem; color: #333;
+  max-height: 280px; overflow-y: auto;
+}
+
+/* ── COMPLETION ACTIONS ─────────────────────────────────── */
+.completion-actions {
+  display: flex; flex-direction: column; gap: 0.6rem;
+  margin-top: 1rem;
+}
+.completion-actions .btn { width: 100%; font-size: 1rem; height: 56px; }
+#bo-folder-link a {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  background: var(--red); color: #fff !important;
+  padding: 1rem; border-radius: 8px;
+  font-weight: 700; text-decoration: none;
+  font-size: 1rem; min-height: 56px;
+  text-align: center;
+}
+
+/* ── DASHBOARD ──────────────────────────────────────────── */
+.search-row {
+  display: flex; gap: 0.6rem; margin-bottom: 1rem; align-items: stretch;
+}
+.search-row input { flex: 1; margin-top: 0; }
+.search-row .btn { height: 52px; flex-shrink: 0; padding: 0 1rem; }
+
+/* Table → card transform on mobile */
+.tbl-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
+table.data { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+table.data th {
+  background: #f8f8f8; color: var(--muted);
+  padding: 0.65rem 0.9rem; text-align: left;
+  white-space: nowrap; font-size: 0.7rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+}
+table.data td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); color: var(--text); }
+table.data tr:last-child td { border-bottom: none; }
+table.data tr.booked td { background: rgba(204,0,0,0.04); }
+table.data tr.booked td:first-child { border-left: 3px solid var(--red); }
+table.data tr:hover td { background: #fafafa; }
+
+@media(max-width: 767px) {
+  .tbl-wrap { border: none; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+  table.data, table.data tbody { display: block; }
+  table.data thead { display: none; }
+  table.data tr {
+    display: block;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.7rem;
+    padding: 0.9rem 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  table.data tr.booked { border-left: 4px solid var(--red); }
+  table.data td {
+    display: flex; align-items: baseline;
+    padding: 0.22rem 0; border: none;
+    font-size: 0.88rem; gap: 0.5rem;
+  }
+  table.data td::before {
+    min-width: 72px; flex-shrink: 0;
+    color: var(--muted); font-size: 0.7rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  table.data td:nth-child(1)::before { content: 'Serial'; }
+  table.data td:nth-child(2)::before { content: 'Item'; }
+  table.data td:nth-child(3)::before { content: 'Account'; }
+  table.data td:nth-child(4)::before { content: 'Location'; }
+  table.data td:nth-child(5)::before { content: 'Date'; }
+  table.data td:nth-child(6)::before { content: 'Sheet'; }
+  table.data tr.booked td { background: transparent; }
+}
+
+/* ── FOLDER BROWSER ─────────────────────────────────────── */
+.folder-browser { }
+.breadcrumb {
+  font-size: 0.8rem; color: var(--muted);
+  padding: 0.6rem 0.85rem;
+  background: #fafafa; border: 1px solid var(--border);
+  border-radius: 8px; font-family: monospace;
+  margin-bottom: 0.75rem;
+  overflow-x: auto; white-space: nowrap;
+  line-height: 1.5;
+}
+.folder-list { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
+.folder-row {
+  display: flex; align-items: center;
+  min-height: 56px; padding: 0 1rem;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer;
+  font-size: 0.95rem; font-weight: 500;
+  color: var(--text); text-align: left;
+  gap: 0.75rem; width: 100%;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.folder-row:hover, .folder-row:active { background: #fafafa; border-color: var(--border-d); }
+.folder-row .folder-icon { font-size: 1.1rem; flex-shrink: 0; }
+.folder-row .chevron { margin-left: auto; color: var(--muted); font-size: 0.9rem; }
+.browser-actions {
+  display: flex; flex-direction: column; gap: 0.5rem;
+  border-top: 1px solid var(--border); padding-top: 0.9rem;
+  margin-top: 0.25rem;
+}
+.browser-actions .btn { width: 100%; }
+
+/* ── PHOTO UPLOAD ───────────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed var(--border-d); border-radius: 10px;
+  padding: 2rem 1rem; text-align: center;
+  color: var(--muted); font-size: 0.9rem;
+  cursor: pointer; transition: all 0.15s;
+  background: #fafafa; min-height: 130px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.drop-zone:hover, .drop-zone:active, .drop-zone.drag {
+  border-color: var(--red); color: var(--text);
+  background: rgba(204,0,0,0.03);
+}
+.drop-zone input[type=file] { display: none; }
+.drop-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+.drop-label { font-weight: 500; }
+.drop-sub { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+.thumb-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.85rem; }
+.thumb { position: relative; }
+.thumb img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
+.thumb .rm {
+  position: absolute; top: -7px; right: -7px;
+  background: var(--red); border: 2px solid #fff; color: #fff;
+  border-radius: 50%; width: 22px; height: 22px;
+  font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* ── ALERTS ─────────────────────────────────────────────── */
+.alert {
+  padding: 0.85rem 1rem; border-radius: 8px;
+  font-size: 0.9rem; margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.alert-err {
+  background: #fff5f5; border: 1px solid rgba(204,0,0,0.25);
+  color: #aa0000; border-left: 3px solid var(--red);
+}
+.alert-ok {
+  background: #f0faf4; border: 1px solid #b2dfca;
+  color: #1a5c35; border-left: 3px solid var(--green);
+}
+
+/* ── SPINNER ────────────────────────────────────────────── */
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.35);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.55s linear infinite; vertical-align: middle;
+}
+.btn-secondary .spinner, .btn-ghost .spinner {
+  border-color: rgba(204,0,0,0.3); border-top-color: var(--red);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── BADGES ─────────────────────────────────────────────── */
+.chip { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; }
+.chip-red  { background: var(--red); color: #fff; }
+.chip-grey { background: #e8e8e8; color: #555; }
+
+/* ── SWAP NOTICE ────────────────────────────────────────── */
+.swap-notice {
+  background: #fffbea; border: 1px solid #f0c040;
+  border-left: 3px solid #e6a800; color: #7a5c00;
+  border-radius: 8px; padding: 0.85rem 1rem;
+  font-size: 0.88rem; margin-bottom: 0.9rem;
+  line-height: 1.5;
+}
+
+/* ── INSTRUCTION NOTE ───────────────────────────────────── */
+.note {
+  font-size: 0.78rem; color: var(--muted);
+  text-align: center; margin-top: 0.6rem;
+  line-height: 1.5;
+}
+
+/* ── GRID ────────────────────────────────────────────────  */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+@media(max-width:480px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* ── DESKTOP OVERRIDES (≥768px) ─────────────────────────── */
+@media(min-width: 768px) {
+  .bottom-nav { display: none; }
+  .top-bar {
+    height: 64px; padding: 0 2rem;
+    justify-content: flex-start; gap: 0.5rem;
+  }
+  .top-bar-nav-links {
+    display: flex; gap: 0.15rem; margin-left: 2rem;
+  }
+  .top-bar-nav-links a {
+    color: var(--muted); text-decoration: none;
+    padding: 0.4rem 0.85rem; border-radius: 5px;
+    font-size: 0.85rem; font-weight: 500;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+  .top-bar-nav-links a:hover { color: var(--text); background: var(--light); }
+  .top-bar-nav-links a.active { color: var(--red); background: rgba(204,0,0,0.06); font-weight: 600; }
+  .page { padding: 2rem 1.5rem; }
+  .btn-row, .btn-row-h { flex-direction: row; }
+  .btn-row .btn, .btn-row-h .btn { width: auto; }
+  .btn-full { width: 100%; }
+  .browser-actions { flex-direction: row; flex-wrap: wrap; }
+  .browser-actions .btn { width: auto; flex: 1; }
+  .site-toggle .tog { max-width: 200px; }
+  .completion-actions { flex-direction: row; flex-wrap: wrap; }
+  .completion-actions .btn { flex: 1; min-width: 160px; height: 52px; font-size: 0.9rem; }
+  #bo-folder-link a { font-size: 0.9rem; min-height: 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     LOGIN PAGE
+════════════════════════════════════════════════════════ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="4,6 22,20 4,34" fill="#CC0000"/>
+        <polygon points="18,6 36,20 18,34" fill="#CC0000" opacity="0.45"/>
+      </svg>
+      <span class="login-brand">atec</span>
+    </div>
+    <div class="login-tagline">secure • connect • integrate</div>
+    <p>Enter your access password to continue</p>
+    <label style="text-align:left">Password</label>
+    <input type="password" id="login-pw" placeholder="••••••••" style="margin-bottom:1rem">
+    <div id="login-err" class="alert alert-err" style="display:none"></div>
+    <button class="btn btn-primary btn-full" style="margin-top:0.3rem" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════════════════ -->
+<div id="app" style="display:none">
+
+  <!-- TOP BAR -->
+  <header class="top-bar">
+    <a class="top-logo" href="#" onclick="nav('dashboard')">
+      <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="4,6 22,20 4,34" fill="#CC0000"/>
+        <polygon points="18,6 36,20 18,34" fill="#CC0000" opacity="0.4"/>
+      </svg>
+      <div>
+        <div class="top-brand">atec</div>
+        <div class="top-tagline">secure • connect • integrate</div>
+      </div>
+    </a>
+    <!-- Desktop nav links (hidden on mobile) -->
+    <div class="top-bar-nav-links">
+      <a href="#" onclick="nav('dashboard')" id="nav-dashboard">Dashboard</a>
+      <a href="#" onclick="nav('bookout')"   id="nav-bookout">Bookout</a>
+      <a href="#" onclick="nav('photos')"    id="nav-photos">Add Photos</a>
+      <a href="#" onclick="nav('stock')"     id="nav-stock">Check Stock</a>
+    </div>
+    <button class="sign-out-btn" onclick="doLogout()">Sign out</button>
+  </header>
+
+  <div class="pages-wrap">
+
+    <!-- ───────────────────────────────────────────────────
+         DASHBOARD
+    ─────────────────────────────────────────────────── -->
+    <div class="page" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="search-row">
+        <input type="text" id="dash-filter" placeholder="Search serial, site, account…" oninput="filterDash()">
+        <button class="btn btn-secondary" onclick="loadDashboard()">&#8635;</button>
+      </div>
+      <div id="dash-alert"></div>
+      <div class="tbl-wrap">
+        <table class="data" id="dash-table">
+          <thead><tr>
+            <th>Serial</th><th>Item</th><th>Account</th><th>Location</th><th>Date</th><th>Sheet</th>
+          </tr></thead>
+          <tbody id="dash-body">
+            <tr><td colspan="6" style="color:var(--muted);padding:1rem">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="dash-footer" style="color:var(--muted);font-size:0.78rem;margin-top:0.75rem;text-align:center"></div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────
+         BOOKOUT
+    ─────────────────────────────────────────────────── -->
+    <div class="page" id="page-bookout">
+      <div class="page-title">New Bookout</div>
+
+      <!-- Step 1: Ticket -->
+      <div class="card" id="bo-step1">
+        <h2>Step 1 <span class="badge">Ticket Details</span></h2>
+        <label>Paste ticket text</label>
+        <textarea id="bo-ticket" placeholder="Paste the full client ticket here…"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-full" onclick="extractTicket()"><span id="extract-sp"></span> Extract Details</button>
+        </div>
+        <div id="bo-ticket-alert" style="display:none;margin-top:0.75rem"></div>
+
+        <!-- Confirm card -->
+        <div id="bo-confirm-card" style="display:none">
+          <div class="confirm-card">
+            <table id="bo-details-table"></table>
+          </div>
+
+          <!-- FMAS / ATEC toggle -->
+          <label style="margin-top:1.25rem">Site Type</label>
+          <div class="site-toggle">
+            <button type="button" class="tog active" id="bo-fmas-atec" onclick="setBoFmas(false)">
+              <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              ATEC
+            </button>
+            <button type="button" class="tog" id="bo-fmas-fmas" onclick="setBoFmas(true)">
+              <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              FMAS
+            </button>
+          </div>
+          <!-- Hidden checkbox — read by JS -->
+          <input type="checkbox" id="bo-fmas" style="display:none">
+
+          <div class="btn-row">
+            <button class="btn btn-primary btn-full" onclick="confirmDetails()">Looks Good — Continue ›</button>
+            <button class="btn btn-ghost btn-full" onclick="editDetails()">Edit Details</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1b: Folder browser (ATEC only) -->
+      <div class="card" id="bo-step-browser" style="display:none">
+        <h2>Navigate to Unit Folder</h2>
+        <div id="bo-browser-alert" style="display:none"></div>
+        <div id="bo-breadcrumb" class="breadcrumb"></div>
+        <div id="bo-browser-loading" style="display:none;color:var(--muted);font-size:0.88rem;padding:0.5rem 0">Loading folders…</div>
+        <div id="bo-folder-list" class="folder-list"></div>
+        <div class="browser-actions">
+          <button class="btn btn-green" onclick="boSelectHere()">&#10003; Upload Here</button>
+          <button class="btn btn-ghost" id="bo-back-btn" onclick="boBrowseBack()" style="display:none">&#8592; Back</button>
+          <button class="btn btn-ghost" onclick="boCreateFolder()">&#43; New Folder</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Serial label photo -->
+      <div class="card" id="bo-step2" style="display:none">
+        <h2>Step 2 <span class="badge">Device Label</span></h2>
+        <div id="bo-serial-alert" style="display:none"></div>
+        <div class="drop-zone" id="serial-drop"
+          onclick="document.getElementById('serial-file').click()"
+          ondragover="dz(event,'serial-drop',true)"
+          ondragleave="dz(event,'serial-drop',false)"
+          ondrop="dzDrop(event,'serial-drop','serial-file-data','serial-thumb')">
+          <input type="file" id="serial-file" accept="image/*" capture="environment"
+            onchange="previewFile(this,'serial-thumb','serial-file-data')">
+          <span class="drop-icon">📷</span>
+          <span class="drop-label">Tap to photograph serial label</span>
+          <span class="drop-sub">or drag and drop an image</span>
+        </div>
+        <div class="thumb-row" id="serial-thumb"></div>
+
+        <div id="bo-serial-confirm" style="display:none">
+          <div class="confirm-card">
+            <table id="bo-serial-table"></table>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary btn-full" onclick="confirmSerial()">Confirm & Continue ›</button>
+            <button class="btn btn-ghost btn-full" onclick="reExtractSerial()">Re-scan</button>
+          </div>
+        </div>
+
+        <div class="btn-row" id="serial-scan-row">
+          <button class="btn btn-primary btn-full" onclick="extractSerial()"><span id="serial-sp"></span> Read Label</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Device photo + submit -->
+      <div class="card" id="bo-step3" style="display:none">
+        <h2>Step 3 <span class="badge">Photos &amp; Submit</span></h2>
+        <label>Device photo — optional</label>
+        <div class="drop-zone" onclick="document.getElementById('device-file').click()"
+          ondragover="dz(event,'device-dz',true)"
+          ondragleave="dz(event,'device-dz',false)"
+          ondrop="dzDrop(event,'device-dz','device-file-data','device-thumb')"
+          id="device-dz">
+          <input type="file" id="device-file" accept="image/*" capture="environment"
+            onchange="previewFile(this,'device-thumb','device-file-data')">
+          <span class="drop-icon">📱</span>
+          <span class="drop-label">Tap to add device photo</span>
+          <span class="drop-sub">optional — skip if not needed</span>
+        </div>
+        <div class="thumb-row" id="device-thumb"></div>
+        <div id="bo-submit-alert" style="display:none;margin-top:0.75rem"></div>
+        <div class="btn-row" style="margin-top:1.25rem">
+          <button class="btn btn-primary btn-full" style="height:56px;font-size:1rem" onclick="runBookout()"><span id="bo-sp"></span> Complete Bookout</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Result -->
+      <div class="card" id="bo-step4" style="display:none">
+        <h2>Step 4 <span class="badge">Complete</span></h2>
+        <div id="bo-swap-notice" class="swap-notice" style="display:none">
+          &#9432; <strong>Swap / Replacement unit</strong> — serial not found in any stock sheet.
+          Sheet update and email skipped. Drive folder and photos only.
+        </div>
+        <ul class="steps" id="bo-steps-list"></ul>
+
+        <!-- Drive folder link — styled as big button via CSS -->
+        <div id="bo-folder-link" style="margin-top:1rem"></div>
+
+        <div class="completion-actions">
+          <button class="btn btn-secondary" onclick="copyLink()">&#128203; Copy Drive Link</button>
+          <button class="btn btn-ghost" onclick="resetBookout()">&#43; New Bookout</button>
+        </div>
+
+        <div id="bo-email-section" style="margin-top:1.25rem">
+          <label style="margin-top:0">Accounts Email — copy and send manually</label>
+          <div class="email-box" id="bo-email-box"></div>
+          <div class="btn-row" style="margin-top:0.6rem">
+            <button class="btn btn-secondary btn-full" onclick="copyEmail()">&#128203; Copy Email</button>
+          </div>
+        </div>
+        <p class="note">Paste the Drive link into your Opticom ticket to attach install evidence.</p>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────
+         ADD PHOTOS
+    ─────────────────────────────────────────────────── -->
+    <div class="page" id="page-photos">
+      <div class="page-title">Add Photos</div>
+
+      <!-- Site details -->
+      <div class="card" id="ph-step1">
+        <h2>Site Details</h2>
+        <label>Site Name</label>
+        <input type="text" id="ph-site" placeholder="e.g. Helderberg Manor">
+
+        <!-- FMAS / ATEC toggle -->
+        <label style="margin-top:1rem">Site Type</label>
+        <div class="site-toggle">
+          <button type="button" class="tog active" id="ph-fmas-atec" onclick="setPhFmas(false)">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            ATEC
+          </button>
+          <button type="button" class="tog" id="ph-fmas-fmas" onclick="setPhFmas(true)">
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            FMAS
+          </button>
+        </div>
+        <!-- Hidden checkbox — read by JS -->
+        <input type="checkbox" id="ph-fmas" style="display:none">
+
+        <div id="ph-fmas-unit" style="display:none">
+          <label>Unit Number</label>
+          <input type="text" id="ph-unit" placeholder="e.g. A12">
+        </div>
+
+        <div id="ph-step1-alert" style="display:none;margin-top:0.75rem"></div>
+        <div class="btn-row" style="margin-top:1.1rem">
+          <button class="btn btn-primary btn-full" onclick="phStartBrowse()">Continue ›</button>
+        </div>
+      </div>
+
+      <!-- Folder browser (ATEC only) -->
+      <div class="card" id="ph-step-browser" style="display:none">
+        <h2>Navigate to Unit Folder</h2>
+        <div id="ph-browser-alert" style="display:none"></div>
+        <div id="ph-breadcrumb" class="breadcrumb"></div>
+        <div id="ph-browser-loading" style="display:none;color:var(--muted);font-size:0.88rem;padding:0.5rem 0">Loading folders…</div>
+        <div id="ph-folder-list" class="folder-list"></div>
+        <div class="browser-actions">
+          <button class="btn btn-green" onclick="phSelectHere()">&#10003; Upload Here</button>
+          <button class="btn btn-ghost" id="ph-back-btn" onclick="phBrowseBack()" style="display:none">&#8592; Back</button>
+          <button class="btn btn-ghost" onclick="phCreateFolder()">&#43; New Folder</button>
+          <button class="btn btn-ghost" onclick="phResetBrowse()">&#8635; Change Site</button>
+        </div>
+      </div>
+
+      <div id="ph-alert" style="display:none"></div>
+
+      <!-- Photo cards -->
+      <div class="card">
+        <h2>02 — ONT / Router Placement</h2>
+        <div class="drop-zone" onclick="document.getElementById('ph-ont').click()" id="ph-ont-dz">
+          <input type="file" id="ph-ont" accept="image/*" capture="environment" onchange="previewFile(this,'ph-ont-thumb')">
+          <span class="drop-icon">📡</span>
+          <span class="drop-label">Tap to add photo</span>
+        </div>
+        <div class="thumb-row" id="ph-ont-thumb"></div>
+      </div>
+
+      <div class="card">
+        <h2>03 — Installation Photos <span class="badge">select multiple</span></h2>
+        <div class="drop-zone" onclick="document.getElementById('ph-inst').click()" id="ph-inst-dz">
+          <input type="file" id="ph-inst" accept="image/*" multiple onchange="previewMultiple(this,'ph-inst-thumb')">
+          <span class="drop-icon">🔧</span>
+          <span class="drop-label">Tap to add photos</span>
+          <span class="drop-sub">select multiple at once</span>
+        </div>
+        <div class="thumb-row" id="ph-inst-thumb"></div>
+      </div>
+
+      <div class="card">
+        <h2>05 — Speed Test</h2>
+        <div class="drop-zone" onclick="document.getElementById('ph-speed').click()" id="ph-speed-dz">
+          <input type="file" id="ph-speed" accept="image/*" capture="environment" onchange="previewFile(this,'ph-speed-thumb')">
+          <span class="drop-icon">⚡</span>
+          <span class="drop-label">Tap to add speed test screenshot</span>
+        </div>
+        <div class="thumb-row" id="ph-speed-thumb"></div>
+      </div>
+
+      <div class="btn-row" style="margin-top:0.5rem">
+        <button class="btn btn-primary btn-full" style="height:56px;font-size:1rem" onclick="submitPhotos()"><span id="ph-sp"></span> Upload Photos</button>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────
+         CHECK STOCK
+    ─────────────────────────────────────────────────── -->
+    <div class="page" id="page-stock">
+      <div class="page-title">Check Stock</div>
+      <div class="card">
+        <label>Serial Number</label>
+        <input type="text" id="cs-serial" placeholder="Enter serial number…"
+          inputmode="text" autocomplete="off"
+          onkeydown="if(event.key==='Enter')checkStock()">
+        <div class="btn-row" style="margin-top:0.85rem">
+          <button class="btn btn-primary btn-full" style="height:56px" onclick="checkStock()"><span id="cs-sp"></span> Search</button>
+        </div>
+      </div>
+      <div id="cs-result"></div>
+    </div>
+
+  </div><!-- /pages-wrap -->
+
+  <!-- BOTTOM NAV (mobile only) -->
+  <nav class="bottom-nav">
+    <a href="#" onclick="nav('dashboard')" id="nav-dashboard-m">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="#" onclick="nav('bookout')" id="nav-bookout-m">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Bookout
+    </a>
+    <a href="#" onclick="nav('photos')" id="nav-photos-m">
+      <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Photos
+    </a>
+    <a href="#" onclick="nav('stock')" id="nav-stock-m">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Stock
+    </a>
+  </nav>
+
+</div><!-- /app -->
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let boDetails = {};
+let boSerial  = "";
+let boItem    = "";
+let boFmas    = false;
+let boTargetFolderId = "";
+let boBrowserStack   = [];   // [{id, name}]
+let phTargetFolderId = "";
+let phBrowserStack   = [];
+let serialFile = null;
+let deviceFile = null;
+let dashData   = [];
+let _userNavigated = false;  // true once user has clicked a nav item
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  checkSession();
+};
+
+async function checkSession() {
+  // Use a fast endpoint just to verify the auth cookie — never the slow dashboard
+  try {
+    const r = await fetch('/api/check-stock?serial=__ping__', { method:'GET' });
+    if (r.status === 401) { showLogin(); return; }
+    // Auth OK — show app immediately on bookout page
+    showApp();
+    nav('bookout', true);  // isAuto — won't override if user already clicked
+  } catch { showLogin(); }
+}
+
+function showLogin() {
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+function showApp() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pw}) });
+  if (r.ok) { _userNavigated = false; showApp(); nav('bookout'); }
+  else { err.textContent = 'Incorrect password'; err.style.display = 'block'; }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-page').style.display !== 'none') doLogin();
+});
+async function doLogout() {
+  await fetch('/api/logout', { method:'POST' });
+  showLogin();
+}
+
+// ─── Nav ──────────────────────────────────────────────────────────────────────
+function nav(page, isAuto) {
+  // isAuto = true means called by code (e.g. checkSession), not the user
+  // If the user has already chosen a page, ignore automatic redirects
+  if (isAuto && _userNavigated) return;
+  if (!isAuto) _userNavigated = true;
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  // Also clear desktop nav links
+  document.querySelectorAll('.top-bar-nav-links a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  // Set active on both mobile bottom nav and desktop top nav
+  const mobileEl = document.getElementById('nav-' + page + '-m');
+  const desktopEl = document.getElementById('nav-' + page);
+  if (mobileEl) mobileEl.classList.add('active');
+  if (desktopEl) desktopEl.classList.add('active');
+  window.scrollTo(0, 0);
+  if (page === 'dashboard') loadDashboard();
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  document.getElementById('dash-body').innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:1rem">Loading…</td></tr>';
+  try {
+    const r = await fetch('/api/dashboard');
+    const d = await r.json();
+    dashData = d.rows || [];
+    document.getElementById('dash-footer').textContent = `${d.active_folder || ''} — ${dashData.length} records`;
+    renderDash(dashData);
+  } catch(e) {
+    document.getElementById('dash-body').innerHTML = `<tr><td colspan="6" style="color:var(--red)">${e.message}</td></tr>`;
+  }
+}
+
+function renderDash(rows) {
+  const tbody = document.getElementById('dash-body');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:1rem">No records found</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => `
+    <tr class="${r.booked ? 'booked' : ''}">
+      <td>${r.serial}</td>
+      <td>${r.item}</td>
+      <td>${r.account}</td>
+      <td>${r.location}</td>
+      <td>${r.date}</td>
+      <td>${r.sheet}</td>
+    </tr>`).join('');
+}
+
+function filterDash() {
+  const q = document.getElementById('dash-filter').value.toLowerCase();
+  if (!q) { renderDash(dashData); return; }
+  renderDash(dashData.filter(r =>
+    r.serial.toLowerCase().includes(q) ||
+    r.account.toLowerCase().includes(q) ||
+    r.sheet.toLowerCase().includes(q)
+  ));
+}
+
+// ─── Bookout ──────────────────────────────────────────────────────────────────
+async function extractTicket() {
+  const ticket = document.getElementById('bo-ticket').value.trim();
+  if (!ticket) { showAlert('bo-ticket-alert', 'Paste ticket text first', 'err'); return; }
+  const sp = document.getElementById('extract-sp');
+  sp.className = 'spinner';
+  clearAlert('bo-ticket-alert');
+  try {
+    const r = await fetch('/api/extract-ticket', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ticket}) });
+    const d = await r.json();
+    boDetails = d;
+    showConfirmCard(d);
+  } catch(e) { showAlert('bo-ticket-alert', e.message, 'err'); }
+  finally { sp.className = ''; }
+}
+
+const FIELDS = [
+  ['full_name','Name'], ['phone','Contact'], ['site_name','Site'], ['unit_number','Unit'],
+  ['address','Address'], ['isp','ISP'], ['speed','Speed'], ['account_number','Account No.']
+];
+
+function showConfirmCard(d) {
+  const tbl = document.getElementById('bo-details-table');
+  tbl.innerHTML = FIELDS.map(([k, label]) => `
+    <tr>
+      <td>${label}</td>
+      <td contenteditable="true" data-key="${k}" style="outline:none;color:var(--text)">${d[k] || '<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`).join('');
+  document.getElementById('bo-confirm-card').style.display = 'block';
+}
+
+function confirmDetails() {
+  document.querySelectorAll('#bo-details-table td[data-key]').forEach(td => {
+    boDetails[td.dataset.key] = td.innerText.trim();
+  });
+  boFmas = document.getElementById('bo-fmas').checked;
+  document.getElementById('bo-step1').style.display = 'none';
+  if (boFmas) {
+    // FMAS — skip browser, go straight to label photo
+    document.getElementById('bo-step2').style.display = 'block';
+  } else {
+    // ATEC — launch folder browser first
+    boTargetFolderId = '';
+    boBrowserStack = [];
+    boStartBrowser();
+  }
+}
+
+function editDetails() {
+  document.getElementById('bo-confirm-card').style.display = 'none';
+}
+
+async function extractSerial() {
+  if (!serialFile) { showAlert('bo-serial-alert', 'Please add a label photo first', 'err'); return; }
+  const sp = document.getElementById('serial-sp');
+  sp.className = 'spinner';
+  clearAlert('bo-serial-alert');
+  document.getElementById('bo-serial-confirm').style.display = 'none';
+  try {
+    const fd = new FormData();
+    fd.append('photo', serialFile);
+    const r = await fetch('/api/extract-serial', { method:'POST', body: fd });
+    const d = await r.json();
+    boSerial = d.serial_number || '';
+    boItem   = d.item_code || '';
+    const tbl = document.getElementById('bo-serial-table');
+    tbl.innerHTML = `
+      <tr><td style="color:var(--muted)">Serial</td><td contenteditable="true" id="edit-serial" style="outline:none;color:var(--text)">${boSerial || '—'}</td></tr>
+      <tr><td style="color:var(--muted)">Item Code</td><td contenteditable="true" id="edit-item" style="outline:none;color:var(--text)">${boItem || '—'}</td></tr>`;
+    document.getElementById('bo-serial-confirm').style.display = 'block';
+    document.getElementById('serial-scan-row').style.display = 'none';
+  } catch(e) { showAlert('bo-serial-alert', e.message, 'err'); }
+  finally { sp.className = ''; }
+}
+
+function reExtractSerial() {
+  document.getElementById('bo-serial-confirm').style.display = 'none';
+  document.getElementById('serial-scan-row').style.display = 'flex';
+}
+
+function confirmSerial() {
+  boSerial = document.getElementById('edit-serial')?.innerText.trim() || boSerial;
+  boItem   = document.getElementById('edit-item')?.innerText.trim() || boItem;
+  if (!boSerial) { showAlert('bo-serial-alert', 'Serial number required', 'err'); return; }
+  if (!boItem)   { showAlert('bo-serial-alert', 'Item code required', 'err'); return; }
+  document.getElementById('bo-step2').style.display = 'none';
+  document.getElementById('bo-step3').style.display = 'block';
+}
+
+async function runBookout() {
+  if (!serialFile) { showAlert('bo-submit-alert', 'Serial label photo missing', 'err'); return; }
+  if (!boFmas && !boTargetFolderId) { showAlert('bo-submit-alert', 'Please navigate the folder browser and select a destination first', 'err'); return; }
+  const sp = document.getElementById('bo-sp');
+  sp.className = 'spinner';
+  clearAlert('bo-submit-alert');
+
+  const fd = new FormData();
+  FIELDS.forEach(([k]) => fd.append(k, boDetails[k] || ''));
+  fd.append('is_fmas', boFmas ? 'true' : 'false');
+  fd.append('serial_number', boSerial);
+  fd.append('item_code', boItem);
+  fd.append('serial_photo', serialFile);
+  if (deviceFile) fd.append('device_photo', deviceFile);
+  if (!boFmas) fd.append('target_folder_id', boTargetFolderId);
+
+  try {
+    const r = await fetch('/api/bookout', { method:'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail) || 'Bookout failed');
+
+    document.getElementById('bo-step3').style.display = 'none';
+    document.getElementById('bo-step4').style.display = 'block';
+
+    // Swap notice
+    const swapNotice = document.getElementById('bo-swap-notice');
+    swapNotice.style.display = d.is_swap ? 'block' : 'none';
+
+    const ul = document.getElementById('bo-steps-list');
+    ul.innerHTML = d.steps.map(s => `<li class="done"><div class="dot"></div>${s}</li>`).join('');
+    document.getElementById('bo-folder-link').innerHTML = `<a href="${d.folder_url}" target="_blank">&#128279; Open Drive Folder</a>`;
+
+    // Email section — hidden for swaps
+    const emailSection = document.getElementById('bo-email-section');
+    if (d.is_swap || !d.email) {
+      emailSection.style.display = 'none';
+    } else {
+      emailSection.style.display = 'block';
+      document.getElementById('bo-email-box').textContent = d.email;
+    }
+
+    window.scrollTo(0, 0);
+  } catch(e) { showAlert('bo-submit-alert', e.message, 'err'); }
+  finally { sp.className = ''; }
+}
+
+// Safe fetch-JSON helper: always returns parsed JSON or throws with a readable message
+async function fetchJSON(url, opts) {
+  const r = await fetch(url, opts);
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch(_) {
+    console.error(`fetchJSON non-JSON response (${r.status}) for ${url}:`, text.slice(0, 500));
+    throw new Error(`Server error (${r.status}) — see browser console (F12) for details`);
+  }
+  if (!r.ok) {
+    const detail = data.detail;
+    let msg;
+    if (typeof detail === 'string') msg = detail;
+    else if (Array.isArray(detail)) msg = detail.map(e => `${e.loc?.slice(-1)[0]}: ${e.msg}`).join(', ');
+    else if (detail) msg = JSON.stringify(detail);
+    else msg = data.error || `Request failed (${r.status})`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+function copyEmail() {
+  const txt = document.getElementById('bo-email-box').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Email', 2000);
+  });
+}
+
+function copyLink() {
+  const a = document.querySelector('#bo-folder-link a');
+  if (!a) return;
+  navigator.clipboard.writeText(a.href).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Drive Link', 2000);
+  });
+}
+
+// ─── FMAS toggle helpers (new — UI only) ─────────────────────────────────────
+function setBoFmas(val) {
+  document.getElementById('bo-fmas').checked = val;
+  document.getElementById('bo-fmas-atec').classList.toggle('active', !val);
+  document.getElementById('bo-fmas-fmas').classList.toggle('active', val);
+}
+
+function setPhFmas(val) {
+  document.getElementById('ph-fmas').checked = val;
+  document.getElementById('ph-fmas-atec').classList.toggle('active', !val);
+  document.getElementById('ph-fmas-fmas').classList.toggle('active', val);
+  // Show/hide unit number field
+  document.getElementById('ph-fmas-unit').style.display = val ? 'block' : 'none';
+}
+
+// ─── Bookout folder browser (ATEC) ───────────────────────────────────────────
+
+async function boStartBrowser() {
+  const siteName = boDetails.site_name || '';
+  if (!siteName) { showAlert('bo-ticket-alert', 'Site name missing from ticket details', 'err'); return; }
+  document.getElementById('bo-step-browser').style.display = 'block';
+  clearAlert('bo-browser-alert');
+  document.getElementById('bo-browser-loading').style.display = 'block';
+  document.getElementById('bo-folder-list').innerHTML = '';
+  try {
+    const d = await fetchJSON(`/api/site-folder?site_name=${encodeURIComponent(siteName)}`);
+    boBrowserStack = [{ id: d.folder_id, name: d.folder_name }];
+    await boRenderBrowser();
+  } catch(e) {
+    showAlert('bo-browser-alert', e.message, 'err');
+  } finally {
+    document.getElementById('bo-browser-loading').style.display = 'none';
+  }
+}
+
+async function boRenderBrowser() {
+  const current = boBrowserStack[boBrowserStack.length - 1];
+  const atTop = boBrowserStack.length === 1;
+  document.getElementById('bo-breadcrumb').innerHTML =
+    'Sites / ' + boBrowserStack.map(f => f.name).join(' / ') +
+    (atTop ? ' &nbsp;<span style="color:#b45309;font-size:0.8rem">⚠ navigate into a unit folder</span>'
+           : ' &nbsp;<span style="color:var(--green);font-size:0.8rem">✓ ready to upload here</span>');
+  document.getElementById('bo-back-btn').style.display = boBrowserStack.length > 1 ? 'inline-flex' : 'none';
+  clearAlert('bo-browser-alert');
+  document.getElementById('bo-browser-loading').style.display = 'block';
+  document.getElementById('bo-folder-list').innerHTML = '';
+  try {
+    const d = await fetchJSON(`/api/browse?folder_id=${current.id}`);
+    const list = document.getElementById('bo-folder-list');
+    if (!d.folders.length) {
+      list.innerHTML = `<div style="color:var(--muted);font-size:0.88rem;padding:0.5rem 0">No subfolders — use "+ New Folder" to create one.</div>`;
+    } else {
+      list.innerHTML = d.folders.map(f => `
+        <button class="folder-row"
+          onclick="boNavigateInto('${f.id}','${f.name.replace(/'/g,"\\'")}')">
+          <span class="folder-icon">&#128193;</span>
+          ${f.name}
+          <span class="chevron">›</span>
+        </button>`).join('');
+    }
+  } catch(e) { showAlert('bo-browser-alert', e.message, 'err'); }
+  finally { document.getElementById('bo-browser-loading').style.display = 'none'; }
+}
+
+function boNavigateInto(id, name) {
+  boBrowserStack.push({ id, name });
+  boRenderBrowser();
+}
+
+function boBrowseBack() {
+  if (boBrowserStack.length > 1) {
+    boBrowserStack.pop();
+    boRenderBrowser();
+  }
+}
+
+async function boCreateFolder() {
+  const name = prompt('New folder name (e.g. Unit 12):');
+  if (!name || !name.trim()) return;
+  const parent = boBrowserStack[boBrowserStack.length - 1];
+  clearAlert('bo-browser-alert');
+  try {
+    const d = await fetchJSON('/api/create-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parent_id: parent.id, name: name.trim() }),
+    });
+    boBrowserStack.push({ id: d.folder_id, name: d.name });
+    await boRenderBrowser();
+    showAlert('bo-browser-alert', `Folder "${d.name}" ${d.created ? 'created' : 'already existed — opened'}.`, 'ok');
+  } catch(e) {
+    showAlert('bo-browser-alert', e.message, 'err');
+  }
+}
+
+function boSelectHere() {
+  if (!boBrowserStack.length) { showAlert('bo-browser-alert', 'No folder loaded yet — wait for the folder list to appear first.', 'err'); return; }
+  if (boBrowserStack.length === 1) { showAlert('bo-browser-alert', 'You are still at the site root — please navigate into the unit folder first.', 'err'); return; }
+  const current = boBrowserStack[boBrowserStack.length - 1];
+  boTargetFolderId = current.id;
+  const path = 'Sites / ' + boBrowserStack.map(f => f.name).join(' / ');
+  document.getElementById('bo-step-browser').style.display = 'none';
+  document.getElementById('bo-step2').style.display = 'block';
+  clearAlert('bo-serial-alert');
+  showAlert('bo-serial-alert', `&#128193; Upload destination confirmed: <strong>${path}</strong>`, 'ok');
+}
+
+function resetBookout() {
+  ['bo-step-browser','bo-step2','bo-step3','bo-step4'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('bo-step1').style.display = 'block';
+  document.getElementById('bo-confirm-card').style.display = 'none';
+  document.getElementById('bo-ticket').value = '';
+  document.getElementById('serial-thumb').innerHTML = '';
+  document.getElementById('device-thumb').innerHTML = '';
+  document.getElementById('serial-scan-row').style.display = 'flex';
+  serialFile = null; deviceFile = null; boDetails = {}; boSerial = ''; boItem = '';
+  boTargetFolderId = ''; boBrowserStack = [];
+  setBoFmas(false);
+  window.scrollTo(0, 0);
+}
+
+// ─── Add Photos folder browser (ATEC) ────────────────────────────────────────
+
+async function phStartBrowse() {
+  const site = document.getElementById('ph-site').value.trim();
+  const fmas = document.getElementById('ph-fmas').checked;
+  if (!site) { showAlert('ph-step1-alert', 'Site name is required', 'err'); return; }
+
+  if (fmas) {
+    // FMAS — no browsing needed, jump straight to upload cards
+    phTargetFolderId = '';
+    document.getElementById('ph-step-browser').style.display = 'none';
+    return; // photo cards are always visible
+  }
+
+  // ATEC — start the folder browser
+  document.getElementById('ph-step-browser').style.display = 'block';
+  clearAlert('ph-browser-alert');
+  document.getElementById('ph-browser-loading').style.display = 'block';
+  document.getElementById('ph-folder-list').innerHTML = '';
+  phBrowserStack = [];
+  try {
+    const d = await fetchJSON(`/api/site-folder?site_name=${encodeURIComponent(site)}`);
+    phBrowserStack = [{ id: d.folder_id, name: d.folder_name }];
+    await phRenderBrowser();
+  } catch(e) {
+    console.error('phStartBrowse error:', e);
+    showAlert('ph-browser-alert', e.message, 'err');
+    document.getElementById('ph-folder-list').innerHTML =
+      `<div style="color:var(--muted);font-size:0.88rem">Could not load folders — see error above.</div>`;
+  } finally {
+    document.getElementById('ph-browser-loading').style.display = 'none';
+  }
+}
+
+async function phRenderBrowser() {
+  const current = phBrowserStack[phBrowserStack.length - 1];
+  const atTop = phBrowserStack.length === 1;
+  document.getElementById('ph-breadcrumb').innerHTML =
+    'Sites / ' + phBrowserStack.map(f => f.name).join(' / ') +
+    (atTop ? ' &nbsp;<span style="color:#b45309;font-size:0.8rem">⚠ navigate into a unit folder</span>'
+           : ' &nbsp;<span style="color:var(--green);font-size:0.8rem">✓ ready to upload here</span>');
+  document.getElementById('ph-back-btn').style.display = phBrowserStack.length > 1 ? 'inline-flex' : 'none';
+  clearAlert('ph-browser-alert');
+  document.getElementById('ph-browser-loading').style.display = 'block';
+  document.getElementById('ph-folder-list').innerHTML = '';
+  try {
+    const d = await fetchJSON(`/api/browse?folder_id=${current.id}`);
+    const list = document.getElementById('ph-folder-list');
+    if (!d.folders.length) {
+      list.innerHTML = `<div style="color:var(--muted);font-size:0.88rem;padding:0.5rem 0">No subfolders — use "+ New Folder" to create one.</div>`;
+    } else {
+      list.innerHTML = d.folders.map(f => `
+        <button class="folder-row"
+          onclick="phNavigateInto('${f.id}','${f.name.replace(/'/g,"\\'")}')">
+          <span class="folder-icon">&#128193;</span>
+          ${f.name}
+          <span class="chevron">›</span>
+        </button>`).join('');
+    }
+  } catch(e) { showAlert('ph-browser-alert', e.message, 'err'); }
+  finally { document.getElementById('ph-browser-loading').style.display = 'none'; }
+}
+
+function phNavigateInto(id, name) {
+  phBrowserStack.push({ id, name });
+  phRenderBrowser();
+}
+
+function phBrowseBack() {
+  if (phBrowserStack.length > 1) {
+    phBrowserStack.pop();
+    phRenderBrowser();
+  }
+}
+
+function phSelectHere() {
+  if (!phBrowserStack.length) { showAlert('ph-browser-alert', 'No folder loaded yet — wait for the folder list to appear first.', 'err'); return; }
+  if (phBrowserStack.length === 1) { showAlert('ph-browser-alert', 'You are still at the site root — please navigate into the unit folder first.', 'err'); return; }
+  const current = phBrowserStack[phBrowserStack.length - 1];
+  phTargetFolderId = current.id;
+  const path = 'Sites / ' + phBrowserStack.map(f => f.name).join(' / ');
+  document.getElementById('ph-step-browser').style.display = 'none';
+  clearAlert('ph-alert');
+  showAlert('ph-alert', `&#128193; Upload destination: <strong>${path}</strong>`, 'ok');
+}
+
+async function phCreateFolder() {
+  const name = prompt('New folder name (e.g. Unit 12):');
+  if (!name || !name.trim()) return;
+  const parent = phBrowserStack[phBrowserStack.length - 1];
+  clearAlert('ph-browser-alert');
+  try {
+    const d = await fetchJSON('/api/create-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parent_id: parent.id, name: name.trim() }),
+    });
+    phBrowserStack.push({ id: d.folder_id, name: d.name });
+    await phRenderBrowser();
+    showAlert('ph-browser-alert', `Folder "${d.name}" ${d.created ? 'created' : 'already existed — opened'}.`, 'ok');
+  } catch(e) {
+    showAlert('ph-browser-alert', e.message, 'err');
+  }
+}
+
+function phResetBrowse() {
+  document.getElementById('ph-step-browser').style.display = 'none';
+  phTargetFolderId = '';
+  phBrowserStack = [];
+  clearAlert('ph-alert');
+}
+
+// ─── Add Photos ───────────────────────────────────────────────────────────────
+async function submitPhotos() {
+  const site = document.getElementById('ph-site').value.trim();
+  const fmas = document.getElementById('ph-fmas').checked;
+  const unit = document.getElementById('ph-unit').value.trim();
+  if (!site) { showAlert('ph-alert', 'Site name is required', 'err'); return; }
+  if (fmas && !unit) { showAlert('ph-alert', 'Unit number is required for FMAS sites', 'err'); return; }
+  if (!fmas && !phTargetFolderId) { showAlert('ph-alert', 'Please use the folder browser to select a destination first', 'err'); return; }
+  const phFmasChecked = fmas;
+
+  const sp = document.getElementById('ph-sp');
+  sp.className = 'spinner';
+  clearAlert('ph-alert');
+
+  const fd = new FormData();
+  fd.append('site_name', site);
+  fd.append('unit_number', unit);  // empty string for ATEC — backend ignores it when target_folder_id is set
+  fd.append('is_fmas', fmas ? 'true' : 'false');
+  if (!fmas) fd.append('target_folder_id', phTargetFolderId);
+
+  const ont   = document.getElementById('ph-ont').files[0];
+  const speed = document.getElementById('ph-speed').files[0];
+  const insts = document.getElementById('ph-inst').files;
+
+  if (ont)   fd.append('ont', ont);
+  if (speed) fd.append('speed', speed);
+  for (const f of insts) fd.append('installs', f);
+
+  try {
+    const r = await fetch('/api/add-photos', { method:'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail) || 'Upload failed');
+    showAlert('ph-alert', `&#10003; Uploaded: ${d.uploaded.join(', ')} — <a href="${d.folder_url}" target="_blank" style="color:var(--green);font-weight:600">Open Drive Folder ›</a>`, 'ok');
+  } catch(e) { showAlert('ph-alert', e.message, 'err'); }
+  finally { sp.className = ''; }
+}
+
+// ─── Check Stock ──────────────────────────────────────────────────────────────
+async function checkStock() {
+  const serial = document.getElementById('cs-serial').value.trim();
+  if (!serial) return;
+  const sp = document.getElementById('cs-sp');
+  sp.className = 'spinner';
+  document.getElementById('cs-result').innerHTML = '';
+  try {
+    const r = await fetch(`/api/check-stock?serial=${encodeURIComponent(serial)}`);
+    const d = await r.json();
+    if (!d.found) {
+      document.getElementById('cs-result').innerHTML = `<div class="alert alert-err">Serial number not found in any sheet.</div>`;
+    } else {
+      const rows = d.headers.map((h, i) => {
+        const v = d.values[i];
+        return h && v ? `<tr><td>${h}</td><td style="color:var(--text)">${v}</td></tr>` : '';
+      }).join('');
+      document.getElementById('cs-result').innerHTML = `
+        <div class="card">
+          <h2>Found <span class="badge">${d.file_name}</span></h2>
+          <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">Tab: ${d.sheet} &nbsp;|&nbsp; Row: ${d.row}</div>
+          <div class="confirm-card"><table>${rows}</table></div>
+        </div>`;
+    }
+  } catch(e) { document.getElementById('cs-result').innerHTML = `<div class="alert alert-err">${e.message}</div>`; }
+  finally { sp.className = ''; }
+}
+
+// ─── Photo helpers ────────────────────────────────────────────────────────────
+function previewFile(input, thumbId, storeId) {
+  const file = input.files[0];
+  if (!file) return;
+  if (storeId === 'serial-file-data') serialFile = file;
+  if (storeId === 'device-file-data') deviceFile = file;
+  const thumb = document.getElementById(thumbId);
+  thumb.innerHTML = '';
+  const url = URL.createObjectURL(file);
+  thumb.innerHTML = `<div class="thumb"><img src="${url}"><button class="rm" onclick="clearFile('${thumbId}','${storeId}','${input.id}')">✕</button></div>`;
+}
+
+function previewMultiple(input, thumbId) {
+  const thumb = document.getElementById(thumbId);
+  thumb.innerHTML = '';
+  for (const file of input.files) {
+    const url = URL.createObjectURL(file);
+    thumb.innerHTML += `<div class="thumb"><img src="${url}"></div>`;
+  }
+}
+
+function clearFile(thumbId, storeId, inputId) {
+  document.getElementById(thumbId).innerHTML = '';
+  document.getElementById(inputId).value = '';
+  if (storeId === 'serial-file-data') serialFile = null;
+  if (storeId === 'device-file-data') deviceFile = null;
+}
+
+function dz(e, id, on) {
+  e.preventDefault();
+  document.getElementById(id).classList.toggle('drag', on);
+}
+
+function dzDrop(e, dzId, storeId, thumbId) {
+  e.preventDefault();
+  document.getElementById(dzId).classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  if (storeId === 'serial-file-data') serialFile = file;
+  if (storeId === 'device-file-data') deviceFile = file;
+  const thumb = document.getElementById(thumbId);
+  thumb.innerHTML = '';
+  const url = URL.createObjectURL(file);
+  thumb.innerHTML = `<div class="thumb"><img src="${url}"><button class="rm" onclick="clearFile('${thumbId}','${storeId}','')">✕</button></div>`;
+}
+
+// ─── Alert helpers ────────────────────────────────────────────────────────────
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.innerHTML = msg;
+  el.className = `alert alert-${type === 'err' ? 'err' : 'ok'}`;
+  el.style.display = 'block';
+}
+function clearAlert(id) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  el.style.display = 'none';
+}
+</script>
+</body>
+</html>
