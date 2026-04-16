@@ -27,7 +27,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. After ticket extraction, a site name not found in `sites.txt` automatically triggers the Direct ATEC flow with no user prompt
   4. The manual "FMAS or Direct ATEC?" selection step is absent from the CLI, web app, and Telegram bot
   5. Tests cover FMAS match, Direct ATEC fallback, and case/whitespace edge cases — all passing offline
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — Create site detection module (data/fmas_sites.txt + utils/site_detection.py + tests)
+- [ ] 01-02-PLAN.md — Wire auto-detection into CLI, web app, and Telegram bot
 
 ### Phase 2: Direct ATEC Folder ID Cache
 **Goal**: Direct ATEC top-level site folder IDs are persisted locally so every interface resolves them in a single cache lookup on repeat bookouts
@@ -48,5 +51,5 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. FMAS Site Auto-Detection | 0/TBD | Not started | - |
+| 1. FMAS Site Auto-Detection | 0/2 | Planned | - |
 | 2. Direct ATEC Folder ID Cache | 0/TBD | Not started | - |
