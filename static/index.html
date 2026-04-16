@@ -575,9 +575,8 @@ table.data tr:hover td { background: #fafafa; }
             <table id="bo-details-table"></table>
           </div>
 
-          <!-- FMAS / ATEC toggle -->
-          <label style="margin-top:1.25rem">Site Type</label>
-          <div class="site-toggle">
+          <!-- FMAS / ATEC — auto-detected (hidden toggle, set by server) -->
+          <div class="site-toggle" id="bo-fmas-group" style="display:none">
             <button type="button" class="tog active" id="bo-fmas-atec" onclick="setBoFmas(false)">
               <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               ATEC
@@ -589,6 +588,10 @@ table.data tr:hover td { background: #fafafa; }
           </div>
           <!-- Hidden checkbox — read by JS -->
           <input type="checkbox" id="bo-fmas" style="display:none">
+          <div id="bo-fmas-label" class="field" style="display:none">
+            <label>Site Type</label>
+            <span id="bo-fmas-text" style="font-weight:600"></span>
+          </div>
 
           <div class="btn-row">
             <button class="btn btn-primary btn-full" onclick="confirmDetails()">Looks Good — Continue ›</button>
@@ -705,9 +708,8 @@ table.data tr:hover td { background: #fafafa; }
         <label>Site Name</label>
         <input type="text" id="ph-site" placeholder="e.g. Helderberg Manor">
 
-        <!-- FMAS / ATEC toggle -->
-        <label style="margin-top:1rem">Site Type</label>
-        <div class="site-toggle">
+        <!-- FMAS / ATEC — auto-detected (hidden toggle, set by server) -->
+        <div class="site-toggle" id="ph-fmas-group" style="display:none">
           <button type="button" class="tog active" id="ph-fmas-atec" onclick="setPhFmas(false)">
             <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             ATEC
@@ -719,6 +721,10 @@ table.data tr:hover td { background: #fafafa; }
         </div>
         <!-- Hidden checkbox — read by JS -->
         <input type="checkbox" id="ph-fmas" style="display:none">
+        <div id="ph-fmas-label" class="field" style="display:none">
+          <label>Site Type</label>
+          <span id="ph-fmas-text" style="font-weight:600"></span>
+        </div>
 
         <div id="ph-fmas-unit" style="display:none">
           <label>Unit Number</label>
@@ -954,6 +960,12 @@ async function extractTicket() {
     const d = await r.json();
     boDetails = d;
     showConfirmCard(d);
+    // Auto-detect site type from server response
+    if (d.is_fmas !== undefined) {
+      setBoFmas(d.is_fmas);
+      document.getElementById('bo-fmas-label').style.display = 'block';
+      document.getElementById('bo-fmas-text').textContent = d.is_fmas ? 'FMAS (auto-detected)' : 'Direct ATEC (auto-detected)';
+    }
   } catch(e) { showAlert('bo-ticket-alert', e.message, 'err'); }
   finally { sp.className = ''; }
 }
@@ -1242,6 +1254,18 @@ function resetBookout() {
 
 async function phStartBrowse() {
   const site = document.getElementById('ph-site').value.trim();
+  if (!site) { showAlert('ph-step1-alert', 'Site name is required', 'err'); return; }
+
+  // Auto-detect site type before browsing
+  const _siteName = site;
+  if (_siteName) {
+    const siteResp = await fetch('/api/check-site-type?site_name=' + encodeURIComponent(_siteName));
+    const siteData = await siteResp.json();
+    setPhFmas(siteData.is_fmas);
+    document.getElementById('ph-fmas-label').style.display = 'block';
+    document.getElementById('ph-fmas-text').textContent = siteData.is_fmas ? 'FMAS (auto-detected)' : 'Direct ATEC (auto-detected)';
+  }
+
   const fmas = document.getElementById('ph-fmas').checked;
   if (!site) { showAlert('ph-step1-alert', 'Site name is required', 'err'); return; }
 

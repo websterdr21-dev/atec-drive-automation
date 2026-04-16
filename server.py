@@ -265,8 +265,20 @@ async def extract_ticket(request: Request):
     if not ticket:
         raise HTTPException(400, "No ticket text provided")
     from utils.extract import extract_client_details
+    from utils.site_detection import is_fmas_site
     details = extract_client_details(ticket)
+    details["is_fmas"] = is_fmas_site(details.get("site_name", ""))
     return details
+
+
+# ---------------------------------------------------------------------------
+# Check site type (FMAS vs Direct ATEC) — used by add-photos frontend
+# ---------------------------------------------------------------------------
+
+@app.get("/api/check-site-type")
+def check_site_type(site_name: str):
+    from utils.site_detection import is_fmas_site
+    return {"is_fmas": is_fmas_site(site_name)}
 
 
 # ---------------------------------------------------------------------------

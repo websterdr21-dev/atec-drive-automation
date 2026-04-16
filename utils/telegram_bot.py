@@ -38,6 +38,7 @@ from telegram.ext import (
     filters,
 )
 
+from utils.site_detection import is_fmas_site
 from utils.telegram_state import (
     STEP_COLLECTING,
     STEP_NAV,
@@ -201,12 +202,6 @@ def lookup_site_type(service, site_name: str) -> Optional[bool]:
         return None
     except Exception:
         return None
-
-
-def infer_is_fmas(site_name: str, ticket_text: str) -> bool:
-    """Legacy helper kept for backward-compat with add-photos path."""
-    blob = f"{site_name} {ticket_text}".lower()
-    return "fmas" in blob
 
 
 def collect_items_from_extractions(extractions: list[dict]) -> list[dict]:
@@ -702,29 +697,7 @@ async def _process_bookout(
     state["_photo_names"] = names
 
     # ---- 3b. Determine site type (FMAS vs ATEC direct) ----
-    # Look up whether the site already exists in Drive to avoid the fragile
-    # text-match fallback.  If the site is new, pause and ask the technician.
-    try:
-        site_type = await asyncio.to_thread(
-            lookup_site_type, _lookup_service, details["site_name"]
-        )
-    except Exception:
-        site_type = None
-
-    if site_type is None:
-        # New site -- cannot determine type from Drive. Ask the user.
-        # State already contains _tmp_paths, _photo_names, and is_swap so
-        # _continue_after_swap_confirm can resume correctly after the reply.
-        state["step"] = STEP_TYPE_SELECT
-        STATE.set(chat_id, state)
-        site = details['site_name']
-        await bot.send_message(
-            chat_id,
-            f"Is '{site}' an FMAS site or a direct ATEC site?\n"
-            "Reply 1 for FMAS, or 2 for ATEC direct.",
-        )
-        return
-    state["is_fmas"] = site_type
+    state["is_fmas"] = is_fmas_site(details["site_name"])
 
     if swap_items:
         state["step"] = STEP_SWAP_CONFIRM
@@ -1030,12 +1003,9 @@ async def _handle_add_photos(
         )
         return
 
-    # Resolve folder — determine FMAS vs ATEC from Drive structure.
+    # Resolve folder — determine FMAS vs ATEC via site list.
     service = _get_drive()
-    is_fmas = await asyncio.to_thread(lookup_site_type, service, site)
-    if is_fmas is None:
-        # Treat as ATEC direct (site may not exist yet on add-photos).
-        is_fmas = False
+    is_fmas = is_fmas_site(site)
     try:
         if is_fmas:
             folder_id, folder_url = await asyncio.to_thread(
