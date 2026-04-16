@@ -180,34 +180,6 @@ def classify_photo_names(extractions: list[dict]) -> list[tuple[str, str]]:
     return names
 
 
-def lookup_site_type(service, site_name: str) -> Optional[bool]:
-    """
-    Determine FMAS vs ATEC by inspecting Drive folder structure.
-
-    Returns True  if the site already exists under Sites/FMAS/.
-    Returns False if the site already exists under Sites/ (ATEC direct).
-    Returns None  if the site does not exist yet in either location —
-                  the caller must ask the user.
-    """
-    from utils.drive_folders import _find_folder_exact
-    did = _drive_id()
-    try:
-        sites_id = _find_folder_exact(service, "Sites", did, did)
-        if not sites_id:
-            return None
-        fmas_id = _find_folder_exact(service, "FMAS", sites_id, did)
-        if fmas_id:
-            site_under_fmas = _find_folder_exact(service, site_name, fmas_id, did)
-            if site_under_fmas:
-                return True
-        site_under_sites = _find_folder_exact(service, site_name, sites_id, did)
-        if site_under_sites:
-            return False
-        return None
-    except Exception:
-        return None
-
-
 def collect_items_from_extractions(extractions: list[dict]) -> list[dict]:
     """Extract the leading label photos as items."""
     items: list[dict] = []
