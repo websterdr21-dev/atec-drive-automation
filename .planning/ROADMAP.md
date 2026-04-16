@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. Tests cover FMAS match, Direct ATEC fallback, and case/whitespace edge cases — all passing offline
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — Create site detection module (data/fmas_sites.txt + utils/site_detection.py + tests)
+- [x] 01-01-PLAN.md — Create site detection module (data/fmas_sites.txt + utils/site_detection.py + tests)
 - [ ] 01-02-PLAN.md — Wire auto-detection into CLI, web app, and Telegram bot
 
 ### Phase 2: Direct ATEC Folder ID Cache
