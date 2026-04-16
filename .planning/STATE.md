@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Roadmap created — ready to plan Phase 1
-last_updated: "2026-04-16T18:22:38.465Z"
-last_activity: 2026-04-16 -- Phase 01.1 planning complete
+stopped_at: Completed 01.1-01-PLAN.md
+last_updated: "2026-04-16T18:28:05.443Z"
+last_activity: 2026-04-16
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** A technician completes a full bookout — ticket to email — in under two minutes, on any device, without knowing the Drive folder structure.
-**Current focus:** Phase 01 — fmas-site-auto-detection
+**Current focus:** Phase 01.1 — telegram-bot-bug-fixes-unit-folder-serial-correction
 
 ## Current Position
 
-Phase: 01 (fmas-site-auto-detection) — EXECUTING
-Plan: 1 of 2
+Phase: 01.1 (telegram-bot-bug-fixes-unit-folder-serial-correction) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-04-16 -- Phase 01.1 planning complete
+Last activity: 2026-04-16
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01.1 P01 | 65s | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - `sites.txt` as FMAS membership list (admin-maintainable, no Drive calls)
 - Auto-detection replaces manual prompt entirely (unknown site falls back to Direct ATEC safely)
 - Case-insensitive matching for site name lookup (ticket extraction may vary capitalisation)
+- [Phase 01.1]: Auto-create Unit [N] subfolder at site root in Telegram bot instead of using site root as upload destination
+- [Phase 01.1]: Learn single-segment template ['Unit {unit}'] immediately so future bookouts skip guided nav
 
 ### Roadmap Evolution
 
@@ -87,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-16
-Stopped at: Roadmap created — ready to plan Phase 1
+Last session: 2026-04-16T18:28:05.430Z
+Stopped at: Completed 01.1-01-PLAN.md
 Resume file: None
