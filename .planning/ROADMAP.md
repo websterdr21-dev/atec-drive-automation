@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 2 plans
 Plans:
 - [x] 01-01-PLAN.md — Create site detection module (data/fmas_sites.txt + utils/site_detection.py + tests)
-- [ ] 01-02-PLAN.md — Wire auto-detection into CLI, web app, and Telegram bot
+- [x] 01-02-PLAN.md — Wire auto-detection into CLI, web app, and Telegram bot
 
 ### Phase 2: Direct ATEC Folder ID Cache
 **Goal**: Direct ATEC top-level site folder IDs are persisted locally so every interface resolves them in a single cache lookup on repeat bookouts
