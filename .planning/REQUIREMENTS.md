@@ -15,7 +15,7 @@
 
 - [ ] **CACHE-01**: Direct ATEC top-level site folder IDs are cached in a local JSON file (default: `data/atec_folder_cache.json`) as `{site_name: folder_id}`
 - [ ] **CACHE-02**: On folder lookup, cache is checked first; if a hit is found, the Drive API traversal is skipped entirely
-- [ ] **CACHE-03**: On cache miss, folder is found or created via Drive API as normal, then the resulting folder ID is saved to cache immediately
+- [ ] **CACHE-03**: On cache miss, Drive is checked for an existing folder before creating one — folder ID is resolved (found or created) then written to cache immediately
 - [ ] **CACHE-04**: Cache is implemented in `utils/drive_folders.py` — all three interfaces (CLI, web, Telegram) benefit automatically without interface-specific changes
 - [ ] **CACHE-05**: Cache file is created automatically on first write if it doesn't exist
 - [ ] **CACHE-06**: Cache survives server restarts (persisted to disk, not in-memory)
@@ -36,17 +36,17 @@
 
 ## Traceability
 
-| Requirement | Phase |
-|-------------|-------|
-| DETECT-01 | Phase 1 |
-| DETECT-02 | Phase 1 |
-| DETECT-03 | Phase 1 |
-| DETECT-04 | Phase 1 |
-| DETECT-05 | Phase 1 |
-| DETECT-06 | Phase 1 |
-| CACHE-01 | Phase 2 |
-| CACHE-02 | Phase 2 |
-| CACHE-03 | Phase 2 |
-| CACHE-04 | Phase 2 |
-| CACHE-05 | Phase 2 |
-| CACHE-06 | Phase 2 |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| DETECT-01 | Phase 1 | Pending |
+| DETECT-02 | Phase 1 | Pending |
+| DETECT-03 | Phase 1 | Pending |
+| DETECT-04 | Phase 1 | Pending |
+| DETECT-05 | Phase 1 | Pending |
+| DETECT-06 | Phase 1 | Pending |
+| CACHE-01 | Phase 2 | Pending |
+| CACHE-02 | Phase 2 | Pending |
+| CACHE-03 | Phase 2 | Pending |
+| CACHE-04 | Phase 2 | Pending |
+| CACHE-05 | Phase 2 | Pending |
+| CACHE-06 | Phase 2 | Pending |

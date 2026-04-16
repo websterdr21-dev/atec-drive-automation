@@ -282,3 +282,241 @@ Legacy root-level scripts (`test_connection.py`, `test_serial_photo.py`, `test_s
 - Photos never overwrite existing files — a numeric suffix is appended on conflict.
 - Stock sheet writes are aborted atomically if the serial cannot be found.
 - The accounts email is composed, not sent — a human is always in the loop.
+
+<!-- GSD:project-start source:PROJECT.md -->
+## Project
+
+**ATEC Stock Bookout Automation**
+
+Python tooling that automates the stock bookout + install-photo workflow for ATEC, a fiber network company. Technicians submit a ticket, the system extracts client details and serial numbers via Claude AI, updates the stock spreadsheet in Google Drive, creates the right folder structure, and generates the accounts email — all without touching Drive manually.
+
+Three interfaces share a common `utils/` core: a CLI (`bookout.py`), a FastAPI web app (`server.py`), and a Telegram bot (`utils/telegram_bot.py`).
+
+**Core Value:** A technician should be able to complete a full bookout — from ticket paste to email copy — in under two minutes, on any device, without knowing the Google Drive folder structure.
+
+### Constraints
+
+- **Tech stack**: Python, Google Drive API (service account), openpyxl, python-telegram-bot, FastAPI — no new runtime dependencies unless clearly justified
+- **Drive structure**: `Sites` and `Sites/FMAS` are never auto-created by code; `FileNotFoundError` raised if absent — must remain
+- **Backward compatibility**: All three interfaces (CLI, web, Telegram) must work after changes; no interface-specific-only fixes
+- **Offline tests**: pytest suite must remain fully offline — `FakeDriveService` and mocked Anthropic; any new cache/store code needs test coverage
+<!-- GSD:project-end -->
+
+<!-- GSD:stack-start source:codebase/STACK.md -->
+## Technology Stack
+
+## Languages
+- Python 3.14 — All application code (CLI, FastAPI backend, Telegram bot, utils)
+- HTML/CSS/JavaScript — Single-file SPA at `static/index.html` (no build step)
+## Runtime
+- Python 3.14 (local dev: Windows; production: Railway)
+- pip
+- Lockfile: Not present — `requirements.txt` specifies minimum versions only
+## Frameworks
+- FastAPI >=0.115.0 — HTTP API server and static file serving (`server.py`)
+- Starlette (via FastAPI) — Middleware (`PasswordMiddleware`), response types
+- No third-party CLI framework — plain `sys.argv` dispatch in `bookout.py`
+- python-telegram-bot >=20.0 — Async bot framework; supports webhook and polling modes
+- uvicorn >=0.30.0 — ASGI server for FastAPI (`uvicorn server:app --reload --port 8000`)
+## Key Dependencies
+- `google-api-python-client >=2.100.0` — Drive v3, Sheets v4, Docs v1, Gmail v1 API clients
+- `google-auth >=2.23.0` — Service account credential loading (`utils/auth.py`)
+- `google-auth-httplib2 >=0.1.1` — HTTP transport for google-auth
+- `anthropic >=0.34.0` — Claude API client used in `utils/extract.py` (model: `claude-opus-4-6`)
+- `openpyxl >=3.1.0` — Downloads, parses, modifies, and re-uploads `.xlsx` stock sheets (`utils/sheets.py`)
+- `python-dotenv >=1.0.0` — `.env` loading via `utils/env.py`
+- `python-multipart >=0.0.9` — Required by FastAPI for `multipart/form-data` (photo uploads)
+## Configuration
+- All configuration sourced from `.env` at project root
+- Loaded once via `utils/env.py:load()` at the top of each entry point (`bookout.py`, `server.py`)
+- Required vars: `SERVICE_ACCOUNT_PATH`, `SHARED_DRIVE_ID`, `ANTHROPIC_API_KEY`, `APP_PASSWORD`
+- Optional vars: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_USE_POLLING`, `RAILWAY_PUBLIC_DOMAIN`
+- No build step — Python runs directly
+- No `pyproject.toml` or `setup.py` — `requirements.txt` only
+- No Docker configuration present
+## Testing
+- pytest — test suite in `tests/` directory
+- stdlib `unittest.mock` — mocking Anthropic and Drive API calls
+- Custom `FakeDriveService` in `tests/conftest.py` — in-memory Drive v3 stand-in
+## Platform Requirements
+- Python 3.14
+- `service_account.json` present at path referenced by `SERVICE_ACCOUNT_PATH` (not committed)
+- `.env` file present with required vars
+- Set `TELEGRAM_USE_POLLING=true` for local Telegram bot dev (no public URL needed)
+- Hosted on Railway
+- Single-instance deployment (Telegram conversation state is in-memory only — not Redis-backed)
+- `RAILWAY_PUBLIC_DOMAIN` triggers automatic Telegram webhook registration on startup
+<!-- GSD:stack-end -->
+
+<!-- GSD:conventions-start source:CONVENTIONS.md -->
+## Conventions
+
+## Naming Patterns
+- Lowercase with underscores for modules: `sheets.py`, `drive_folders.py`, `telegram_bot.py`
+- Entry points are root-level descriptive names: `bookout.py`, `server.py`
+- Test files follow pytest convention: `test_stock.py`, `test_drive.py`, `test_photos.py`
+- Lowercase with underscores: `get_unit_folder()`, `find_serial_number()`, `upload_bookout_photos()`
+- Private helpers prefixed with underscore: `_download_xlsx()`, `_upload_xlsx()`, `_find_folder_exact()`, `_match_query()`
+- CLI command functions: `cmd_bookout()`, `cmd_add_photos()`, `cmd_check_stock()` in `bookout.py`
+- Lowercase with underscores for all variable and constant names
+- Constants in UPPERCASE where appropriate: `FOLDER_MIME = "application/vnd.google-apps.folder"`, `RED_FILL`, `PHOTO_TYPES`, `SCOPES`
+- Module-level singletons capitalized: `STATE`, `SITES`, `CLIENT` (anthropic client cache)
+- PascalCase for classes: `FakeDriveService`, `_FakeFilesAPI`, `_Inputs`, `_Req`, `StateManager`, `SiteStructureStore`, `PasswordMiddleware`
+## Code Style
+- No formatter explicitly configured (no `.prettierrc`, `setup.cfg`, or `pyproject.toml`)
+- Code follows PEP 8 style conventions manually
+- Line length appears unconstrained in most files
+- Consistent spacing: functions separated by blank lines, internal logic grouped by comment headers
+- No linting configuration detected in repo
+- Code does not import from `__future__` unless needed (e.g., `from __future__ import annotations` in modules with forward references)
+- Type hints used selectively (function arguments and returns where clarity needed)
+- Triple-quote docstrings at module level explaining purpose and layout: `"""Central .env loader — always use this instead of bare load_dotenv()."""`
+- Module-level comment headers in sections: `# ---------------------------------------------------------------------------` demarcation with section title
+- Inline comments explain "why" not "what": e.g., `# Numeric comparison: handle int/float stored values`
+- No unnecessary comments on obvious code
+- Parameters use snake_case
+- Return values are documented in docstrings (key dict structures described inline)
+- Functions are focused on a single operation (avoid god functions)
+- Error handling raises explicit exceptions with context: `ValueError(f"Serial number '{serial_number}' not found...")`
+- Each module in `utils/` is single-purpose: `sheets.py` for Sheet operations, `drive_folders.py` for folder navigation, `photos.py` for photo upload logic
+- Barrel files: None used; imports are explicit
+- Internal helpers prefixed with `_` signal they are not intended for external use
+- Helper functions (`_find_folder`, `_download_xlsx`, `_next_index`) are grouped at module level, not scattered
+## Import Organization
+- No path aliases configured
+- Imports always use relative module paths: `from utils.env import load`, `from utils.sheets import find_serial_number`
+## Error Handling
+- Explicit exceptions raised with descriptive messages: `ValueError`, `FileNotFoundError`
+- Google Drive lookup failures surface as `FileNotFoundError` with context: `raise FileNotFoundError("'Sites' folder not found in Shared Drive root.")`
+- Serial number not found for update raises atomically: `ValueError(f"Serial number '{serial_number}' not found in any Serial Number Listing sheet.")` — no partial writes
+- CLI exit on fatal env errors: `sys.exit(1)` with preceding error message to stdout
+- No bare `except` clauses; failures propagate up to be handled by caller
+## Logging
+- Logger created per module: `logger = logging.getLogger(__name__)`
+- Warnings for configuration issues: `logger.warning("ALLOWED_USER_IDS is not a comma-separated integer list")`
+- Info for state transitions: implicit (code does not log every step)
+- No debug logging visible in production code; CLI uses print() for user feedback
+## JSON Handling
+- Anthropic API responses are parsed with `json.loads()` after stripping markdown code fences:
+- This pattern is repeated in `extract_client_details()` and `extract_serial_from_photo()` (`utils/extract.py`)
+- Errors in JSON parsing are not caught — they propagate to caller (tests assert `json.JSONDecodeError`)
+## Guard Patterns
+- Find-or-create operations always check existence before creating: `_find_or_create_folder()` in `utils/drive_folders.py` queries for exact name match, returns existing ID if found
+- Repeat calls to `get_unit_folder()` return same IDs without creating duplicates
+- Tests verify this: `test_get_unit_folder_never_creates_duplicates_on_repeat_calls`
+- Stock sheet updates abort before any writes if serial is not found
+- Photo uploads use conflict suffix strategy (`_02`, `_03`) rather than overwrites — never destroy existing files
+- Root folders (`Sites`, `Sites/FMAS`) are never created by code — they must exist or `FileNotFoundError` is raised
+- This is enforced by design: only `_find_folder_exact()` is called for these; `_find_or_create_folder()` is not
+- Service account file existence checked: `if not os.path.exists(sa_path): ... sys.exit(1)`
+- Required env vars checked before proceeding: `SERVICE_ACCOUNT_PATH`, `SHARED_DRIVE_ID`
+## Date/Time Handling
+- Dates stored as ISO 8601 strings (`YYYY-MM-DD`): `datetime.date.today().strftime("%Y-%m-%d")`
+- Used in stock sheet "Date Last Move" column and email body
+- No timezone handling; all dates are local
+## Anthropic Client Caching
+- Global `CLIENT = None` in `utils/extract.py`
+- Lazy initialization on first use: `_get_client()` checks `if CLIENT is None` then creates via `anthropic.Anthropic(api_key=...)`
+- Avoids repeated client instantiation
+- Tests reset this cache: `monkeypatch.setattr(extract_mod, "CLIENT", None, raising=False)`
+## FastAPI Patterns
+- Middleware-based auth: `PasswordMiddleware` checks `atec_auth` cookie
+- Global exception handler serializes uncaught errors as JSON with last 1000 chars of traceback
+- Endpoints return JSON dicts (no HTML error pages visible to API consumers)
+- SPA routing: `/{full_path:path}` serves `static/index.html` for all non-API routes
+## Case-Insensitive Comparisons
+- Serial number lookup is case-insensitive: `str(cell_value).strip().lower() == serial_lower`
+- Header matching also case-insensitive: `if str(row[0]).strip().lower() == "serial number"`
+- This handles both user input variations and spreadsheet quirks
+## Numeric Handling in Spreadsheets
+- Serials may be stored as int/float in Excel (e.g., `200254233608` stored as number, not text)
+- Search handles this: if user enters a numeric string, convert to `int` and compare numeric cells via `int()` cast
+- This prevents missing matches due to storage format differences
+<!-- GSD:conventions-end -->
+
+<!-- GSD:architecture-start source:ARCHITECTURE.md -->
+## Architecture
+
+## Pattern Overview
+- Three independent entry points (CLI, FastAPI web app, Telegram bot) all delegate to the same `utils/` module layer
+- No ORM, no database — Google Drive is the data store; `.xlsx` files are the stock ledger
+- Stateless HTTP API with a single shared-password session cookie for auth; Telegram conversation state is in-memory only
+- All Google API interactions are synchronous (google-api-python-client); FastAPI endpoints call them on the main thread (no background tasks or thread pool)
+## Layers
+- Purpose: Accept user input, orchestrate calls to utils, return results
+- Locations: `bookout.py` (CLI), `server.py` (FastAPI), `utils/telegram_bot.py` (Telegram)
+- Contains: Input handling, flow control, error display, response formatting
+- Depends on: All `utils/` modules
+- Used by: End users directly
+- Purpose: Reusable business logic shared by all three entry points
+- Location: `utils/`
+- Contains:
+- Depends on: Google APIs, Anthropic API, openpyxl, python-telegram-bot
+- Used by: `bookout.py`, `server.py`, `utils/telegram_bot.py`
+- Purpose: Single-page web UI served by FastAPI
+- Location: `static/index.html`
+- Contains: Dashboard, bookout form, add-photos form, check-stock form; drag-and-drop photo upload
+- Depends on: FastAPI API endpoints
+- Used by: Web browser clients
+## Data Flow
+- Steps 4 (sheet update) and 7 (email) are skipped
+- Steps 5 and 6 (folder + photo upload) still execute
+- Detected automatically in `server.py` (`is_swap = result is None`); requires explicit confirmation in the CLI
+- Download `.xlsx` via `MediaIoBaseDownload` → openpyxl in-memory → modify → re-upload via `MediaIoBaseUpload`
+- No Google Sheets API calls for data; all manipulation is openpyxl on the binary file
+- `utils/telegram_state.StateManager` — dict keyed by `chat_id`; each value is a state dict with a `step` field driving the conversation FSM
+- State expires after 30 minutes of inactivity
+- `utils/telegram_state.SiteStructureStore` — JSON file at `data/atec_site_structures.json`; persists learned folder path templates for direct ATEC sites across bot restarts
+## Key Abstractions
+- Purpose: In-memory stand-in for the Drive v3 API client; interprets a subset of Drive query syntax
+- Location: `tests/conftest.py`
+- Pattern: Tracks `records` dict, `create_calls` list, `update_calls` list; `_match_query()` parses `mimeType`, `name`, `name contains`, `in parents`, `trashed` clauses
+- Purpose: Per-chat conversation state for the Telegram bot
+- Location: `utils/telegram_state.py`
+- Pattern: `get(chat_id)` returns `None` on miss or expiry; `set()` stamps `last_activity`; cleared on `/cancel` or completion
+- Purpose: Persist folder path templates for direct ATEC sites so repeat bookouts don't require re-navigation
+- Location: `utils/telegram_state.py`
+- Pattern: `learn()` records segments with `{unit}` token substituted for the unit number; `resolve_template()` substitutes it back at runtime; saves atomically via `.tmp` rename
+## Entry Points
+- Location: `bookout.py`
+- Triggers: `python bookout.py bookout | add-photos | check-stock`
+- Responsibilities: Interactive prompts, FMAS/ATEC site-type selection, inline field correction, folder browser (`_browse_to_folder`), swap confirmation
+- Location: `server.py`
+- Triggers: `uvicorn server:app --reload --port 8000`
+- Responsibilities: HTTP API for all three workflows, `PasswordMiddleware` auth, Telegram bot lifecycle (`asynccontextmanager lifespan`), global JSON exception handler, SPA serving
+- Location: `utils/telegram_bot.py`
+- Triggers: Built and started by `server.py` lifespan if `TELEGRAM_BOT_TOKEN` is set; receives updates via webhook (`POST /telegram/webhook`) or polling
+- Responsibilities: Command handling (`/bookout`, `/addphotos`, `/checkstock`, `/cancel`, `/start`), FSM-driven multi-step conversation, photo buffering
+## Error Handling
+- `FileNotFoundError` raised by `drive_folders.py` and `sheets.py` when required Drive folders (`Sites`, `Sites/FMAS`, `Stock Sheets`) are absent — callers propagate or catch
+- `ValueError` raised by `update_stock_row()` if serial not found — no partial writes occur
+- FastAPI global exception handler at `server.py:_global_exc` catches all unhandled exceptions and returns `{"detail": ..., "trace": ...}` JSON with status 500
+- CLI prints `[ERROR]` prefix messages and calls `sys.exit(1)` on env misconfiguration
+## Cross-Cutting Concerns
+<!-- GSD:architecture-end -->
+
+<!-- GSD:skills-start source:skills/ -->
+## Project Skills
+
+No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, or `.github/skills/` with a `SKILL.md` index file.
+<!-- GSD:skills-end -->
+
+<!-- GSD:workflow-start source:GSD defaults -->
+## GSD Workflow Enforcement
+
+Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+
+Use these entry points:
+- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
+- `/gsd-debug` for investigation and bug fixing
+- `/gsd-execute-phase` for planned phase work
+
+Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+<!-- GSD:workflow-end -->
+
+<!-- GSD:profile-start -->
+## Developer Profile
+
+> Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
+> This section is managed by `generate-claude-profile` -- do not edit manually.
+<!-- GSD:profile-end -->
