@@ -854,7 +854,8 @@ async def _handle_serial_correction(
     else:
         # Still not found — fall back to swap confirm for all remaining not-found items.
         item["serial"] = corrected  # keep the corrected serial even in swap
-        swap_items = [it for it in state["items"] if it["is_swap"] or it["serial"] == corrected]
+        item["is_swap"] = True      # mark as swap so stock update is skipped
+        swap_items = [it for it in state["items"] if it["is_swap"]]
         state["step"] = STEP_SWAP_CONFIRM
         STATE.set(chat_id, state)
         await bot.send_message(chat_id, format_swap_warning(swap_items))
