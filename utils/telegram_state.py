@@ -182,11 +182,15 @@ class SiteStructureStore:
         The segment matching `unit_number` is substituted with `{unit}` so the
         template generalises across units.
         """
+        unit_folder_name = f"Unit {unit_number}" if unit_number else None
         template = []
         for seg in segments:
-            if unit_number and seg == unit_number:
+            if unit_number and (seg == unit_number or seg == unit_folder_name):
+                # Exact match on bare unit number or "Unit X" folder name.
                 template.append(self.UNIT_TOKEN)
-            elif unit_number and unit_number in seg:
+            elif unit_number and unit_number in seg and seg.startswith("Unit "):
+                # Partial match only within "Unit X"-style names, not arbitrary
+                # segments (e.g. "Block 12" must not become "Block {unit}2").
                 template.append(seg.replace(unit_number, self.UNIT_TOKEN))
             else:
                 template.append(seg)
