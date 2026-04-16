@@ -938,6 +938,17 @@ async def _handle_type_select_reply(
     )
 
 
+def _strip_numeric_suffix(base: str) -> str:
+    """Remove a trailing _01 / _02 etc. from a filename stem.
+
+    Used so conflict-resolution always indexes from the canonical base
+    (e.g. ``01_Serial_Number``) rather than the per-message name
+    (e.g. ``01_Serial_Number_01``), preventing double-indexed filenames
+    like ``01_Serial_Number_01_02.jpg``.
+    """
+    return re.sub(r"_\d{2}$", "", base)
+
+
 async def _upload_and_reply(
     context: ContextTypes.DEFAULT_TYPE,
     chat_id: int,
@@ -958,7 +969,10 @@ async def _upload_and_reply(
         uploaded_count = 0
         for (role, want_name), local_path in zip(names, paths):
             # Let photos.py's conflict suffixing run if needed.
-            base = want_name.rsplit(".", 1)[0]
+            # Strip trailing _NN so _next_index indexes from the canonical
+            # base (e.g. "01_Serial_Number") not the per-message name
+            # (e.g. "01_Serial_Number_01"), avoiding "01_Serial_Number_01_02".
+            base = _strip_numeric_suffix(want_name.rsplit(".", 1)[0])
             final = want_name if want_name not in existing else _next_index(existing, base)
             await asyncio.to_thread(
                 upload_photo, service, folder_id, local_path, final,
