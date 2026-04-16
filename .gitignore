@@ -9,7 +9,6 @@ venv/
 *.xlsx
 .env
 .claude/
-.planning/
 
 # Windows
 Thumbs.db
