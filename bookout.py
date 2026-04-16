@@ -40,19 +40,6 @@ def _prompt(label, default=None):
     return val if val else default
 
 
-def _ask_site_type(site_name):
-    print(f"\nIs '{site_name}' an FMAS site or a direct ATEC site?")
-    print("  1. FMAS")
-    print("  2. Direct ATEC")
-    while True:
-        choice = input("Enter 1 or 2: ").strip()
-        if choice == "1":
-            return True
-        if choice == "2":
-            return False
-        print("  Please enter 1 or 2.")
-
-
 def _browse_to_folder(service, drive_id, start_folder_id, start_path):
     """
     Interactive CLI folder browser for ATEC sites.
@@ -177,10 +164,15 @@ def cmd_bookout():
             details[key] = val if val else details.get(key)
 
     # ------------------------------------------------------------------
-    # Step 2: FMAS or direct site
+    # Step 2: FMAS or direct site (auto-detected)
     # ------------------------------------------------------------------
+    from utils.site_detection import is_fmas_site
     _divider()
-    is_fmas = _ask_site_type(details["site_name"])
+    is_fmas = is_fmas_site(details["site_name"])
+    if is_fmas:
+        print(f"STEP 2 — Site type: FMAS (auto-detected)")
+    else:
+        print(f"STEP 2 — Site type: Direct ATEC (auto-detected)")
 
     # ------------------------------------------------------------------
     # Step 3: Serial number from photo
@@ -333,7 +325,9 @@ def cmd_add_photos():
     print("ADD POST-INSTALL PHOTOS\n")
     site_name = _prompt("Site name")
     unit_number = _prompt("Unit number")
-    is_fmas = _ask_site_type(site_name)
+    from utils.site_detection import is_fmas_site
+    is_fmas = is_fmas_site(site_name)
+    print(f"  Site type: {'FMAS' if is_fmas else 'Direct ATEC'} (auto-detected)")
 
     if is_fmas:
         folder_id, folder_url, _, _ = get_unit_folder(service, drive_id, site_name, unit_number, is_fmas=True)

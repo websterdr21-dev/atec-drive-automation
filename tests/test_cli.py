@@ -97,25 +97,6 @@ def test_prompt_returns_entered_value(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# _ask_site_type
-# ---------------------------------------------------------------------------
-
-def test_ask_site_type_fmas(monkeypatch):
-    _feed(monkeypatch, ["1"])
-    assert bookout._ask_site_type("S") is True
-
-
-def test_ask_site_type_atec(monkeypatch):
-    _feed(monkeypatch, ["2"])
-    assert bookout._ask_site_type("S") is False
-
-
-def test_ask_site_type_retries_on_bad_input(monkeypatch, capsys):
-    _feed(monkeypatch, ["x", "3", "", "2"])
-    assert bookout._ask_site_type("S") is False
-
-
-# ---------------------------------------------------------------------------
 # check-stock command — happy + miss paths
 # ---------------------------------------------------------------------------
 
@@ -191,6 +172,9 @@ def test_cmd_bookout_fmas_happy_path(
     photo = tmp_path / "label.jpg"
     photo.write_bytes(b"\xff\xd8\xff\xd9")
 
+    # Force FMAS auto-detection (extracted_client_details has a non-FMAS site name)
+    monkeypatch.setattr("utils.site_detection.is_fmas_site", lambda _name: True)
+
     # Stub the util layer
     monkeypatch.setattr(
         "utils.extract.extract_client_details",
@@ -232,7 +216,7 @@ def test_cmd_bookout_fmas_happy_path(
         "",                  # blank
         "",                  # second blank to exit ticket block
         "y",                 # details correct
-        "1",                 # FMAS
+        # NO "1" for FMAS -- auto-detected
         str(photo),          # serial photo path
         "y",                 # serial/item correct
         "y",                 # proceed with stock update
@@ -253,6 +237,7 @@ def test_cmd_bookout_swap_mode_skips_sheet_update_and_email(
     _stub_env(monkeypatch, tmp_path)
     photo = tmp_path / "label.jpg"; photo.write_bytes(b"\xff\xd8\xff\xd9")
 
+    monkeypatch.setattr("utils.site_detection.is_fmas_site", lambda _name: True)
     monkeypatch.setattr(
         "utils.extract.extract_client_details",
         lambda _t: dict(extracted_client_details),
@@ -285,7 +270,7 @@ def test_cmd_bookout_swap_mode_skips_sheet_update_and_email(
     _feed(monkeypatch, [
         "ticket", "", "",   # ticket text + double-blank
         "y",                # details correct
-        "1",                # FMAS
+        # NO "1" for FMAS -- auto-detected
         str(photo),         # photo path
         "y",                # serial/item correct
         "y",                # proceed as swap
@@ -304,6 +289,7 @@ def test_cmd_bookout_aborts_when_swap_not_confirmed(
     _stub_env(monkeypatch, tmp_path)
     photo = tmp_path / "label.jpg"; photo.write_bytes(b"\xff\xd8\xff\xd9")
 
+    monkeypatch.setattr("utils.site_detection.is_fmas_site", lambda _name: True)
     monkeypatch.setattr(
         "utils.extract.extract_client_details",
         lambda _t: dict(extracted_client_details),
@@ -322,7 +308,7 @@ def test_cmd_bookout_aborts_when_swap_not_confirmed(
 
     _feed(monkeypatch, [
         "ticket", "", "",
-        "y", "1", str(photo), "y",
+        "y", str(photo), "y",  # NO "1" -- auto-detected
         "n",  # REFUSE to proceed as swap
     ])
 
@@ -343,13 +329,14 @@ def test_cmd_bookout_exits_if_serial_photo_missing(
     monkeypatch, tmp_path, extracted_client_details
 ):
     _stub_env(monkeypatch, tmp_path)
+    monkeypatch.setattr("utils.site_detection.is_fmas_site", lambda _name: True)
     monkeypatch.setattr(
         "utils.extract.extract_client_details",
         lambda _t: dict(extracted_client_details),
     )
     _feed(monkeypatch, [
         "ticket", "", "",
-        "y", "1",
+        "y",  # NO "1" -- auto-detected
         "/no/such/photo.jpg",
     ])
     with pytest.raises(SystemExit):
@@ -364,6 +351,7 @@ def test_add_photos_skips_upload_when_no_paths_given(
     monkeypatch, tmp_path
 ):
     _stub_env(monkeypatch, tmp_path)
+    monkeypatch.setattr("utils.site_detection.is_fmas_site", lambda _name: True)
     monkeypatch.setattr(
         "utils.drive_folders.get_unit_folder",
         lambda *a, **k: ("uid", "https://drive/u", False, False),
@@ -376,7 +364,7 @@ def test_add_photos_skips_upload_when_no_paths_given(
     _feed(monkeypatch, [
         "Site X",          # site name
         "42",              # unit number
-        "1",               # FMAS
+        # NO "1" for FMAS -- auto-detected
         "",                # ONT photo path (skip)
         "",                # first install photo (skip — breaks loop)
         "",                # speed photo (skip)
@@ -385,6 +373,87 @@ def test_add_photos_skips_upload_when_no_paths_given(
     bookout.cmd_add_photos()
 
     assert upload_called == [], "nothing should be uploaded when no paths given"
+
+
+# ---------------------------------------------------------------------------
+# Auto-detection tests
+# ---------------------------------------------------------------------------
+
+def test_bookout_auto_detects_fmas_site(monkeypatch, tmp_path, extracted_client_details, capsys):
+    """Site type is auto-detected -- no '1'/'2' prompt in input sequence."""
+    _stub_env(monkeypatch, tmp_path)
+    photo = tmp_path / "label.jpg"
+    photo.write_bytes(b"\xff\xd8\xff\xd9")
+
+    # Override site_name to a known FMAS site and patch is_fmas_site to confirm it
+    details = dict(extracted_client_details)
+    details["site_name"] = "The Topaz"
+
+    monkeypatch.setattr("utils.extract.extract_client_details", lambda _t: dict(details))
+    monkeypatch.setattr("utils.extract.extract_serial_from_photo",
+        lambda _p: {"serial_number": "SN-0001", "item_code": "ONT-GPON-1"})
+    monkeypatch.setattr("utils.sheets.find_serial_number",
+        lambda svc, did, serial: {"file_id": "f", "file_name": "S.xlsx", "sheet_name": "Stock",
+                                   "row_index": 3, "row_values": [], "headers": []})
+    monkeypatch.setattr("utils.sheets.update_stock_row", lambda *a, **k: None)
+    monkeypatch.setattr("utils.drive_folders.get_unit_folder",
+        lambda *a, **k: ("unit_id", "https://drive/unit", True, True))
+    monkeypatch.setattr("utils.photos.upload_bookout_photos",
+        lambda *a, **k: [("01_Serial_Number.jpg", "id")])
+    monkeypatch.setattr("utils.gmail.print_bookout_email", lambda d: None)
+
+    _feed(monkeypatch, [
+        "Some ticket text", "", "",  # ticket text
+        "y",                         # details correct
+        # NO "1" or "2" for site type -- auto-detected!
+        str(photo),                  # serial photo path
+        "y",                         # serial/item correct
+        "y",                         # proceed with stock update
+        "",                          # device photo (skip)
+    ])
+
+    bookout.cmd_bookout()
+    out = capsys.readouterr().out
+    assert "FMAS (auto-detected)" in out
+
+
+def test_bookout_auto_detects_atec_site(monkeypatch, tmp_path, extracted_client_details, capsys):
+    """Non-FMAS site auto-routes to Direct ATEC."""
+    _stub_env(monkeypatch, tmp_path)
+    photo = tmp_path / "label.jpg"
+    photo.write_bytes(b"\xff\xd8\xff\xd9")
+
+    # Monkeypatch is_fmas_site so this test does not depend on data/fmas_sites.txt existing on disk
+    monkeypatch.setattr("utils.site_detection.is_fmas_site", lambda _name: False)
+    monkeypatch.setattr("utils.extract.extract_client_details", lambda _t: dict(extracted_client_details))
+    monkeypatch.setattr("utils.extract.extract_serial_from_photo",
+        lambda _p: {"serial_number": "SN-0001", "item_code": "ONT-GPON-1"})
+    monkeypatch.setattr("utils.sheets.find_serial_number",
+        lambda svc, did, serial: {"file_id": "f", "file_name": "S.xlsx", "sheet_name": "Stock",
+                                   "row_index": 3, "row_values": [], "headers": []})
+    monkeypatch.setattr("utils.sheets.update_stock_row", lambda *a, **k: None)
+    monkeypatch.setattr("utils.drive_folders.get_atec_site_folder",
+        lambda *a, **k: ("site_id_123", False))
+    # Must stub the browser since ATEC flow uses it
+    monkeypatch.setattr(bookout, "_browse_to_folder",
+        lambda *a, **k: ("folder_id_456", "https://drive/folder"))
+    monkeypatch.setattr("utils.photos.upload_bookout_photos",
+        lambda *a, **k: [("01_Serial_Number.jpg", "id")])
+    monkeypatch.setattr("utils.gmail.print_bookout_email", lambda d: None)
+
+    _feed(monkeypatch, [
+        "Some ticket text", "", "",
+        "y",              # details correct
+        # NO "1" or "2" -- auto-detected as ATEC!
+        str(photo),
+        "y",              # serial/item correct
+        "y",              # proceed stock update
+        "",               # device photo skip
+    ])
+
+    bookout.cmd_bookout()
+    out = capsys.readouterr().out
+    assert "Direct ATEC (auto-detected)" in out
 
 
 # ---------------------------------------------------------------------------
