@@ -30,13 +30,14 @@ EXPIRY_SECONDS = 30 * 60  # 30 minutes
 # Per-chat state
 # ---------------------------------------------------------------------------
 
-STEP_COLLECTING   = "collecting"
-STEP_PARSING      = "parsing"
-STEP_SWAP_CONFIRM = "swap_confirm"
-STEP_TYPE_SELECT  = "type_select"   # waiting for user to confirm FMAS vs ATEC
-STEP_NAV          = "nav"
-STEP_UPLOADING    = "uploading"
-STEP_DONE         = "done"
+STEP_COLLECTING        = "collecting"
+STEP_PARSING           = "parsing"
+STEP_SWAP_CONFIRM      = "swap_confirm"
+STEP_SERIAL_CORRECTION = "serial_correction"  # waiting for user to correct extracted serial
+STEP_TYPE_SELECT       = "type_select"        # waiting for user to confirm FMAS vs ATEC
+STEP_NAV               = "nav"
+STEP_UPLOADING         = "uploading"
+STEP_DONE              = "done"
 
 
 def new_bookout_state() -> dict:
