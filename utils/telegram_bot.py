@@ -929,9 +929,27 @@ async def _handle_nav_reply(
         # breadcrumb to get just the segments below Sites/[site_name]/.
         segments = state["atec_nav_breadcrumb"][1:]
         if not segments:
-            # User pressed 'u' at the site root — nothing to learn. Treat the
-            # site root itself as the destination.
-            folder_id = state["atec_nav_current_id"]
+            # User pressed 'u' at the site root — auto-create Unit [N] subfolder
+            # instead of landing photos in the site root.
+            from utils.drive_folders import _find_or_create_folder
+            unit_name = f"Unit {state['unit_number']}"
+            try:
+                unit_id, _ = await asyncio.to_thread(
+                    _find_or_create_folder,
+                    service, unit_name, state["atec_nav_current_id"], _drive_id(),
+                )
+            except Exception as e:
+                _cleanup_paths(state.get("_tmp_paths", []))
+                STATE.clear(chat_id)
+                await bot.send_message(
+                    chat_id, format_error("Drive folder", f"Could not create {unit_name}: {e}")
+                )
+                return
+            folder_id = unit_id
+            SITES.learn(
+                state["site_name"], [unit_name], state["unit_number"],
+                learned_by=update.effective_user.id if update.effective_user else None,
+            )
         else:
             folder_id = state["atec_nav_current_id"]
             SITES.learn(
@@ -943,7 +961,8 @@ async def _handle_nav_reply(
         state["folder_url"] = f"https://drive.google.com/drive/folders/{folder_id}"
         STATE.set(chat_id, state)
 
-        template_str = " / ".join(state["atec_nav_breadcrumb"][1:]) or "(site root)"
+        sub_segments = state["atec_nav_breadcrumb"][1:] or [f"Unit {state['unit_number']} (auto-created)"]
+        template_str = " / ".join(sub_segments)
         await bot.send_message(
             chat_id,
             f"Structure saved for {state['site_name']}: {template_str}\n"
