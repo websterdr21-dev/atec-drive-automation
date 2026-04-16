@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01.1-01-PLAN.md
-last_updated: "2026-04-16T18:28:05.443Z"
+status: verifying
+stopped_at: Completed 01.1-02-PLAN.md
+last_updated: "2026-04-16T18:35:07.523Z"
 last_activity: 2026-04-16
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 Phase: 01.1 (telegram-bot-bug-fixes-unit-folder-serial-correction) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-16
 
 Progress: [░░░░░░░░░░] 0%
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01.1 P01 | 65s | 1 tasks | 1 files |
+| Phase 01.1 P02 | 180 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - Case-insensitive matching for site name lookup (ticket extraction may vary capitalisation)
 - [Phase 01.1]: Auto-create Unit [N] subfolder at site root in Telegram bot instead of using site root as upload destination
 - [Phase 01.1]: Learn single-segment template ['Unit {unit}'] immediately so future bookouts skip guided nav
+- [Phase 01.1]: Insert STEP_SERIAL_CORRECTION before STEP_SWAP_CONFIRM so user can correct OCR misreads before swap mode is assumed
+- [Phase 01.1]: Display not-found serial as Markdown inline code so it is easy to copy and edit on mobile
 
 ### Roadmap Evolution
 
@@ -90,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-16T18:28:05.430Z
-Stopped at: Completed 01.1-01-PLAN.md
+Last session: 2026-04-16T18:35:07.511Z
+Stopped at: Completed 01.1-02-PLAN.md
 Resume file: None
