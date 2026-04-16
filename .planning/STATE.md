@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Roadmap created — ready to plan Phase 1
-last_updated: "2026-04-16T17:59:55.404Z"
-last_activity: 2026-04-16 -- Phase 01 execution started
+last_updated: "2026-04-16T18:22:38.465Z"
+last_activity: 2026-04-16 -- Phase 01.1 planning complete
 progress:
-  total_phases: 2
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 0
-  percent: 0
+  total_phases: 3
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 
 Phase: 01 (fmas-site-auto-detection) — EXECUTING
 Plan: 1 of 2
-Status: Executing Phase 01
-Last activity: 2026-04-16 -- Phase 01 execution started
+Status: Ready to execute
+Last activity: 2026-04-16 -- Phase 01.1 planning complete
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -64,6 +64,10 @@ Recent decisions affecting current work:
 - `sites.txt` as FMAS membership list (admin-maintainable, no Drive calls)
 - Auto-detection replaces manual prompt entirely (unknown site falls back to Direct ATEC safely)
 - Case-insensitive matching for site name lookup (ticket extraction may vary capitalisation)
+
+### Roadmap Evolution
+
+- Phase 01.1 inserted after Phase 01: Telegram Bot Bug Fixes: Unit Folder + Serial Correction (URGENT)
 
 ### Pending Todos
 

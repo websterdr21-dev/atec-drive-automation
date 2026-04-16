@@ -32,6 +32,16 @@ Plans:
 - [x] 01-01-PLAN.md — Create site detection module (data/fmas_sites.txt + utils/site_detection.py + tests)
 - [x] 01-02-PLAN.md — Wire auto-detection into CLI, web app, and Telegram bot
 
+### Phase 01.1: Telegram Bot Bug Fixes: Unit Folder + Serial Correction (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 1
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 01.1 to break down)
+
 ### Phase 2: Direct ATEC Folder ID Cache
 **Goal**: Direct ATEC top-level site folder IDs are persisted locally so every interface resolves them in a single cache lookup on repeat bookouts
 **Depends on**: Phase 1
