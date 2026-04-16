@@ -42,6 +42,7 @@ from utils.site_detection import is_fmas_site
 from utils.telegram_state import (
     STEP_COLLECTING,
     STEP_NAV,
+    STEP_SERIAL_CORRECTION,
     STEP_SWAP_CONFIRM,
     STEP_TYPE_SELECT,
     SiteStructureStore,
@@ -308,6 +309,15 @@ def format_swap_warning(swap_items: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def format_serial_correction_prompt(serial: str, item_code: str | None) -> str:
+    """Message shown when a serial is not found — asks user to correct or confirm swap."""
+    code_str = f" ({item_code})" if item_code else ""
+    return (
+        f"Serial `{serial}`{code_str} was not found in any stock sheet.\n\n"
+        "Reply with the correct serial number to retry, or reply *swap* to skip the sheet update for this item."
+    )
+
+
 def format_error(step: str, reason: str, hint: str = "") -> str:
     out = f"{step} failed — {reason}"
     if hint:
@@ -480,6 +490,15 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await msg.reply_text("Cancelled.")
             return
         await _handle_type_select_reply(update, context, state, text)
+        return
+
+    # ---- Serial-correction reply ----
+    if state and state.get("step") == STEP_SERIAL_CORRECTION and not msg.photo:
+        if low == "/cancel":
+            STATE.clear(chat_id)
+            await msg.reply_text("Cancelled.")
+            return
+        await _handle_serial_correction(update, context, state, text)
         return
 
     # ---- Swap-confirm reply ----
@@ -700,9 +719,18 @@ async def _process_bookout(
     state["is_fmas"] = is_fmas_site(details["site_name"])
 
     if swap_items:
-        state["step"] = STEP_SWAP_CONFIRM
+        # Enter serial correction for the first not-found item before falling back to swap.
+        first = swap_items[0]
+        state["step"] = STEP_SERIAL_CORRECTION
+        state["_correction_serial_index"] = next(
+            i for i, it in enumerate(state["items"]) if it["serial"] == first["serial"]
+        )
         STATE.set(chat_id, state)
-        await bot.send_message(chat_id, format_swap_warning(swap_items))
+        await bot.send_message(
+            chat_id,
+            format_serial_correction_prompt(first["serial"], first.get("item_code")),
+            parse_mode="Markdown",
+        )
         return
 
     await _continue_after_swap_confirm(
@@ -775,6 +803,107 @@ async def _continue_after_swap_confirm(
     state["folder_url"] = folder_url
 
     await _upload_and_reply(context, chat_id, state)
+
+
+async def _handle_serial_correction(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    state: dict,
+    text: str,
+):
+    """
+    Handle the technician's reply during STEP_SERIAL_CORRECTION.
+
+    - "swap" → mark item as swap, check if more not-found items remain, else continue.
+    - Any other text → treat as corrected serial, re-run find_serial_number.
+      If found: update item, check remaining not-found items, continue.
+      If still not found: fall back to STEP_SWAP_CONFIRM.
+    """
+    bot = context.bot
+    chat_id = update.effective_chat.id if update.effective_chat else None
+
+    idx = state.get("_correction_serial_index", 0)
+    item = state["items"][idx]
+
+    if text.strip().lower() == "swap":
+        # User confirmed swap for this item — check if others still need correction.
+        item["is_swap"] = True
+        await _advance_serial_correction(update, context, state, chat_id)
+        return
+
+    # Treat reply as corrected serial.
+    corrected = text.strip()
+    try:
+        service = _get_drive()
+        from utils.sheets import find_serial_number
+        result = await asyncio.to_thread(
+            find_serial_number, service, _drive_id(), corrected
+        )
+    except Exception as e:
+        await bot.send_message(chat_id, format_error("Stock lookup", str(e)))
+        return
+
+    if result is not None:
+        # Found — update the item with corrected serial and clear swap flag.
+        item["serial"] = corrected
+        item["is_swap"] = False
+        await bot.send_message(
+            chat_id, f"Found `{corrected}` in stock sheets.", parse_mode="Markdown"
+        )
+        await _advance_serial_correction(update, context, state, chat_id)
+    else:
+        # Still not found — fall back to swap confirm for all remaining not-found items.
+        item["serial"] = corrected  # keep the corrected serial even in swap
+        swap_items = [it for it in state["items"] if it["is_swap"] or it["serial"] == corrected]
+        state["step"] = STEP_SWAP_CONFIRM
+        STATE.set(chat_id, state)
+        await bot.send_message(chat_id, format_swap_warning(swap_items))
+
+
+async def _advance_serial_correction(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    state: dict,
+    chat_id: int,
+):
+    """
+    After one item's serial is resolved (corrected or confirmed swap), check if
+    more not-found items remain. If yes, prompt for the next one. If no, continue
+    the bookout flow.
+    """
+    bot = context.bot
+    STATE.set(chat_id, state)
+
+    # Find next item that was not found in stock (is_swap still True from mark_swaps,
+    # and hasn't been corrected yet — i.e. index is beyond the current one).
+    next_swap = next(
+        (
+            (i, it) for i, it in enumerate(state["items"])
+            if it["is_swap"]
+            and i > state.get("_correction_serial_index", 0)
+        ),
+        None,
+    )
+
+    if next_swap:
+        next_idx, next_item = next_swap
+        state["_correction_serial_index"] = next_idx
+        state["step"] = STEP_SERIAL_CORRECTION
+        STATE.set(chat_id, state)
+        await bot.send_message(
+            chat_id,
+            format_serial_correction_prompt(next_item["serial"], next_item.get("item_code")),
+            parse_mode="Markdown",
+        )
+        return
+
+    # All items resolved — continue bookout.
+    state["is_swap"] = all(it["is_swap"] for it in state["items"])
+    state.pop("_correction_serial_index", None)
+    STATE.set(chat_id, state)
+    await _continue_after_swap_confirm(
+        update=update, context=context, state=state, chat_id=chat_id
+    )
 
 
 async def _handle_type_select_reply(
