@@ -131,7 +131,7 @@ def classify_photo_names(extractions: list[dict]) -> list[tuple[str, str]]:
     naming convention:
 
         Serial label photos (N at the start, while extraction returned a
-        serial)       → 01_Serial_Number_01.jpg, _02, …
+        serial)       → 01_Serial_Number.jpg (single) or _01.jpg, _02, … (multiple)
         Next photo    → 04_Device_Photo.jpg
         Following     → 02_ONT_Router_Placement.jpg
         Following     → 05_Speed_Test.jpg
@@ -152,8 +152,11 @@ def classify_photo_names(extractions: list[dict]) -> list[tuple[str, str]]:
 
     names: list[tuple[str, str]] = []
 
-    for i in range(n_labels):
-        names.append(("serial", f"01_Serial_Number_{i + 1:02d}.jpg"))
+    if n_labels == 1:
+        names.append(("serial", "01_Serial_Number.jpg"))
+    else:
+        for i in range(n_labels):
+            names.append(("serial", f"01_Serial_Number_{i + 1:02d}.jpg"))
 
     positional = ["device", "ont", "speed"]
     positional_filenames = {
