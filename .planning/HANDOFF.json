@@ -1,36 +1,33 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-16T18:44:59.789Z",
+  "timestamp": "2026-04-17T05:53:22.025Z",
   "phase": "01.1",
   "phase_name": "telegram-bot-bug-fixes-unit-folder-serial-correction",
   "phase_dir": ".planning/phases/01.1-telegram-bot-bug-fixes-unit-folder-serial-correction",
-  "plan": 2,
+  "plan": null,
   "task": null,
-  "total_tasks": 3,
-  "status": "paused",
+  "total_tasks": null,
+  "status": "complete",
   "completed_tasks": [
-    {"id": 1, "name": "Fix _handle_nav_reply auto unit-folder creation (plan 01.1-01)", "status": "done", "commit": "4915e84"},
-    {"id": 2, "name": "Add STEP_SERIAL_CORRECTION to telegram_state.py (plan 01.1-02 task 1)", "status": "done", "commit": "3f60ed4"},
-    {"id": 3, "name": "Wire serial correction into telegram_bot.py (plan 01.1-02 task 2)", "status": "done", "commit": "50c4051"},
-    {"id": 4, "name": "Code review (standard depth, 2 files) + fix all 6 findings", "status": "done", "commit": "997eb78"}
+    {"id": "01.1-01", "name": "Fix _handle_nav_reply site-root upload", "status": "done", "commit": "4915e84"},
+    {"id": "01.1-02", "name": "Serial correction FSM", "status": "done", "commit": "50c4051"},
+    {"id": "code-review-fixes", "name": "Apply 6 code review findings", "status": "done", "commit": "997eb78"},
+    {"id": "post-execution", "name": "Regression gate + verify + roadmap update", "status": "done", "commit": "53130fb"}
   ],
-  "remaining_tasks": [
-    {"id": 5, "name": "close_parent_artifacts - resolve parent phase 01 UAT/debug for decimal phase 01.1", "status": "not_started"},
-    {"id": 6, "name": "regression_gate - run prior phase test suite (pytest tests/)", "status": "not_started"},
-    {"id": 7, "name": "verify_phase_goal - spawn gsd-verifier, create VERIFICATION.md", "status": "not_started"},
-    {"id": 8, "name": "update_roadmap - mark phase 01.1 complete, commit tracking files", "status": "not_started"},
-    {"id": 9, "name": "offer_next - present next step options to user", "status": "not_started"}
-  ],
+  "remaining_tasks": [],
   "blockers": [],
-  "human_actions_pending": [],
+  "human_actions_pending": [
+    {
+      "action": "Live Telegram bot testing — 4 UAT items in 01.1-HUMAN-UAT.md",
+      "context": "Requires live bot session + real Drive. User approved without live testing; UAT file persists.",
+      "blocking": false
+    }
+  ],
   "decisions": [
-    {"decision": "Fixed all 4 warnings (WR-01..WR-04) in addition to 2 criticals", "rationale": "WR-01/02 photo naming bugs affected real output; WR-03 bare-except silent swallow; WR-04 template corruption", "phase": "01.1"}
+    {"decision": "Fixed all 4 code review warnings (WR-01..WR-04) in addition to 2 criticals", "rationale": "All were real production bugs", "phase": "01.1"},
+    {"decision": "Human-UAT approved without live testing", "rationale": "User accepted; UAT file tracks for future follow-up", "phase": "01.1"}
   ],
-  "uncommitted_files": [
-    ".planning/config.json (modified - pre-existing)",
-    ".planning/codebase/ (untracked dir)",
-    ".planning/debug/ (untracked dir)"
-  ],
-  "next_action": "Resume /gsd-execute-phase 01.1 - both SUMMARYs exist so it will skip plan execution and jump to close_parent_artifacts, regression_gate, verify_phase_goal, update_roadmap.",
-  "context_notes": "Phase 01.1 is functionally complete. Both plans executed and committed, code review done with all 6 findings fixed, 109 tests pass. Only execute-phase post-execution steps remain: parent artifact closure, regression gate, verification, roadmap update."
+  "uncommitted_files": [],
+  "next_action": "/gsd-discuss-phase 02 — no CONTEXT.md exists yet for phase 02",
+  "context_notes": "Phase 01.1 fully complete. Next is phase 02 (direct-atec-folder-id-cache). Recommend discuss before plan."
 }
