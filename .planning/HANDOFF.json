@@ -1,33 +1,31 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-17T05:53:22.025Z",
-  "phase": "01.1",
-  "phase_name": "telegram-bot-bug-fixes-unit-folder-serial-correction",
-  "phase_dir": ".planning/phases/01.1-telegram-bot-bug-fixes-unit-folder-serial-correction",
-  "plan": null,
-  "task": null,
-  "total_tasks": null,
-  "status": "complete",
-  "completed_tasks": [
-    {"id": "01.1-01", "name": "Fix _handle_nav_reply site-root upload", "status": "done", "commit": "4915e84"},
-    {"id": "01.1-02", "name": "Serial correction FSM", "status": "done", "commit": "50c4051"},
-    {"id": "code-review-fixes", "name": "Apply 6 code review findings", "status": "done", "commit": "997eb78"},
-    {"id": "post-execution", "name": "Regression gate + verify + roadmap update", "status": "done", "commit": "53130fb"}
+  "timestamp": "2026-04-17T10:30:44.391Z",
+  "phase": "02",
+  "phase_name": "Direct ATEC Folder ID Cache",
+  "phase_dir": ".planning/phases/02-direct-atec-folder-id-cache",
+  "plan": 0,
+  "task": 0,
+  "total_tasks": 2,
+  "status": "paused",
+  "completed_tasks": [],
+  "remaining_tasks": [
+    {"id": 1, "name": "02-01-PLAN.md — Add _AtecFolderCache class to drive_folders.py", "status": "not_started"},
+    {"id": 2, "name": "02-02-PLAN.md — Wire cache into get_atec_site_folder + add tests", "status": "not_started"}
   ],
-  "remaining_tasks": [],
   "blockers": [],
-  "human_actions_pending": [
-    {
-      "action": "Live Telegram bot testing — 4 UAT items in 01.1-HUMAN-UAT.md",
-      "context": "Requires live bot session + real Drive. User approved without live testing; UAT file persists.",
-      "blocking": false
-    }
-  ],
+  "human_actions_pending": [],
   "decisions": [
-    {"decision": "Fixed all 4 code review warnings (WR-01..WR-04) in addition to 2 criticals", "rationale": "All were real production bugs", "phase": "01.1"},
-    {"decision": "Human-UAT approved without live testing", "rationale": "User accepted; UAT file tracks for future follow-up", "phase": "01.1"}
+    {"decision": "Cache file path hardcoded as data/atec_folder_cache.json", "rationale": "Matches SiteStructureStore pattern; D-01", "phase": "02"},
+    {"decision": "Atomic writes via .tmp + os.replace()", "rationale": "Copied from SiteStructureStore; D-11", "phase": "02"},
+    {"decision": "Stale recovery is caller-driven: _get_cache().delete(site_name) + retry", "rationale": "No pre-validation on cache hit; D-04/D-05", "phase": "02"}
   ],
-  "uncommitted_files": [],
-  "next_action": "/gsd-discuss-phase 02 — no CONTEXT.md exists yet for phase 02",
-  "context_notes": "Phase 01.1 fully complete. Next is phase 02 (direct-atec-folder-id-cache). Recommend discuss before plan."
+  "uncommitted_files": [
+    ".planning/phases/02-direct-atec-folder-id-cache/02-01-PLAN.md",
+    ".planning/phases/02-direct-atec-folder-id-cache/02-02-PLAN.md",
+    ".planning/phases/02-direct-atec-folder-id-cache/02-PATTERNS.md",
+    ".planning/00-REVIEW.md"
+  ],
+  "next_action": "Commit 4 uncommitted planning files, then run /gsd-execute-phase 2",
+  "context_notes": "Phase 2 planning complete. Two wave plans ready. Full codebase review found 4 critical issues in .planning/00-REVIEW.md (auth.py signature bug, TOCTOU race in sheets.py, folder name injection, empty-password login). Review before or after execution. Code review agent completed in background during pause."
 }
