@@ -1,31 +1,37 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-17T10:30:44.391Z",
+  "timestamp": "2026-04-20T08:18:00.745Z",
   "phase": "02",
   "phase_name": "Direct ATEC Folder ID Cache",
   "phase_dir": ".planning/phases/02-direct-atec-folder-id-cache",
-  "plan": 0,
+  "plan": 2,
   "task": 0,
   "total_tasks": 2,
-  "status": "paused",
-  "completed_tasks": [],
+  "status": "post_execution_pending",
+  "completed_tasks": [
+    {"id": 1, "name": "02-01: Add _AtecFolderCache class + singleton to drive_folders.py", "status": "done", "commit": "0bad240"},
+    {"id": 2, "name": "02-02 T1: Wire cache into get_atec_site_folder()", "status": "done", "commit": "f5633d3"},
+    {"id": 3, "name": "02-02 T2: Add 5 cache tests + tmp_cache fixture", "status": "done", "commit": "1aba144"},
+    {"id": 4, "name": "02-02 fix: Add _isolate_cache autouse fixture", "status": "done", "commit": "50db357"}
+  ],
   "remaining_tasks": [
-    {"id": 1, "name": "02-01-PLAN.md — Add _AtecFolderCache class to drive_folders.py", "status": "not_started"},
-    {"id": 2, "name": "02-02-PLAN.md — Wire cache into get_atec_site_folder + add tests", "status": "not_started"}
+    {"id": 5, "name": "Code review gate (gsd-code-review 2)", "status": "not_started"},
+    {"id": 6, "name": "verify_phase_goal — spawn gsd-verifier, create VERIFICATION.md", "status": "not_started"},
+    {"id": 7, "name": "update_roadmap — mark phase 02 complete in ROADMAP/STATE", "status": "not_started"},
+    {"id": 8, "name": "Check data/ in .gitignore (atec_folder_cache.json must not be committed)", "status": "not_started"}
   ],
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [
-    {"decision": "Cache file path hardcoded as data/atec_folder_cache.json", "rationale": "Matches SiteStructureStore pattern; D-01", "phase": "02"},
-    {"decision": "Atomic writes via .tmp + os.replace()", "rationale": "Copied from SiteStructureStore; D-11", "phase": "02"},
-    {"decision": "Stale recovery is caller-driven: _get_cache().delete(site_name) + retry", "rationale": "No pre-validation on cache hit; D-04/D-05", "phase": "02"}
+    {"decision": "Cache hit returns (cached_id, False)", "rationale": "created=False preserves caller contract", "phase": "02"},
+    {"decision": "cache.set() on both found-existing and just-created paths", "rationale": "CACHE-03 — cache regardless of how ID was resolved", "phase": "02"},
+    {"decision": "No Drive pre-validation on cache hit", "rationale": "D-04 — stale recovery is caller-driven via delete+retry", "phase": "02"},
+    {"decision": "_isolate_cache autouse fixture in test_drive.py", "rationale": "Module-level _CACHE singleton leaked across tests; autouse fixture backs it with tmp_path", "phase": "02"},
+    {"decision": "executor-inline fallback for Wave 2", "rationale": "gsd-executor subagent reported no Bash access; executed plan inline", "phase": "02"}
   ],
   "uncommitted_files": [
-    ".planning/phases/02-direct-atec-folder-id-cache/02-01-PLAN.md",
-    ".planning/phases/02-direct-atec-folder-id-cache/02-02-PLAN.md",
-    ".planning/phases/02-direct-atec-folder-id-cache/02-PATTERNS.md",
-    ".planning/00-REVIEW.md"
+    ".planning/STATE.md"
   ],
-  "next_action": "Commit 4 uncommitted planning files, then run /gsd-execute-phase 2",
-  "context_notes": "Phase 2 planning complete. Two wave plans ready. Full codebase review found 4 critical issues in .planning/00-REVIEW.md (auth.py signature bug, TOCTOU race in sheets.py, folder name injection, empty-password login). Review before or after execution. Code review agent completed in background during pause."
+  "next_action": "Run /gsd-execute-phase 2 — both SUMMARYs exist so execution skipped; workflow goes straight to code review → verification → phase complete",
+  "context_notes": "All code done, 114/114 tests pass. Paused mid execute-phase workflow after plan execution but before post-execution gates. The .continue-here.md has full detail on what remains."
 }
