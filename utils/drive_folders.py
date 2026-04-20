@@ -6,6 +6,15 @@ Folder paths:
   ATEC site:   Sites → [Site Name] → <user browses to destination> (interactive)
 """
 
+from __future__ import annotations
+
+import json
+import logging
+import os
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 FOLDER_MIME = "application/vnd.google-apps.folder"
 
 
@@ -133,3 +142,78 @@ def get_unit_folder(service, drive_id, site_name, unit_number, is_fmas):
 
     url = f"https://drive.google.com/drive/folders/{unit_id}"
     return unit_id, url, site_created, unit_created
+
+
+# ---------------------------------------------------------------------------
+# Direct ATEC folder ID cache
+# ---------------------------------------------------------------------------
+
+
+class _AtecFolderCache:
+    """
+    Flat `{site_name: folder_id}` cache persisted to JSON on disk.
+
+    Used exclusively by `get_atec_site_folder()` to skip the Drive API
+    traversal on repeat bookouts for the same Direct ATEC site.
+
+    - File path: `data/atec_folder_cache.json` by default.
+    - Auto-created on first write if the file/dir doesn't exist.
+    - Atomic writes via `.tmp` + `os.replace()` — survives crash/interrupt.
+    - Corrupt JSON is silently discarded — cache starts empty.
+    - Keys are stored as-is (no internal casing transform — D-09).
+    """
+
+    DEFAULT_PATH = "data/atec_folder_cache.json"
+
+    def __init__(self, path: str = DEFAULT_PATH):
+        self.path = Path(path)
+        self._data: dict[str, str] = {}
+        self._load()
+
+    # ---- persistence ----
+    def _load(self) -> None:
+        if not self.path.exists():
+            self._data = {}
+            return
+        try:
+            with self.path.open("r", encoding="utf-8") as f:
+                self._data = json.load(f)
+                if not isinstance(self._data, dict):
+                    raise ValueError("top-level JSON is not an object")
+        except (json.JSONDecodeError, ValueError, OSError) as e:
+            logger.warning(
+                "Folder ID cache at %s is corrupt (%s) — starting empty",
+                self.path, e,
+            )
+            self._data = {}
+
+    def _save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_suffix(self.path.suffix + ".tmp")
+        with tmp.open("w", encoding="utf-8") as f:
+            json.dump(self._data, f, indent=2, sort_keys=True)
+        os.replace(tmp, self.path)
+
+    # ---- queries ----
+    def get(self, site_name: str) -> str | None:
+        return self._data.get(site_name)
+
+    # ---- mutations ----
+    def set(self, site_name: str, folder_id: str) -> None:
+        self._data[site_name] = folder_id
+        self._save()
+
+    def delete(self, site_name: str) -> None:
+        if site_name in self._data:
+            del self._data[site_name]
+            self._save()
+
+
+_CACHE: "_AtecFolderCache | None" = None
+
+
+def _get_cache() -> "_AtecFolderCache":
+    global _CACHE
+    if _CACHE is None:
+        _CACHE = _AtecFolderCache()
+    return _CACHE
