@@ -8,6 +8,13 @@ import pytest
 from utils import drive_folders
 
 
+@pytest.fixture(autouse=True)
+def _isolate_cache(tmp_path, monkeypatch):
+    """Back _CACHE with a tmp_path file so tests never share singleton state."""
+    cache = drive_folders._AtecFolderCache(str(tmp_path / "_test_cache.json"))
+    monkeypatch.setattr(drive_folders, "_CACHE", cache)
+
+
 # ---------------------------------------------------------------------------
 # list_subfolders
 # ---------------------------------------------------------------------------
