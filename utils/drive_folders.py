@@ -41,11 +41,31 @@ def get_atec_site_folder(service, drive_id, site_name):
     Find or create Sites/[site_name] for a direct ATEC site.
     Returns (folder_id, created).
     Does NOT create anything deeper — user browses from here.
+
+    Uses a local JSON cache (`data/atec_folder_cache.json`) keyed by
+    site_name. On cache hit, returns `(cached_id, False)` without any
+    Drive API call. On cache miss, resolves via find-or-create then
+    writes the ID to cache before returning.
+
+    Stale recovery: callers that hit a "folder not found" error when
+    using the returned ID should call `_get_cache().delete(site_name)`
+    and retry — the retry will fall through to the miss path and
+    repopulate the cache with a fresh ID.
     """
+    cache = _get_cache()
+    cached_id = cache.get(site_name)
+    if cached_id:
+        return cached_id, False  # cache hit — no Drive call
+
+    # Cache miss: find-or-create, then write to cache.
     sites_id = _find_folder_exact(service, "Sites", drive_id, drive_id)
     if not sites_id:
         raise FileNotFoundError("'Sites' folder not found in Shared Drive root.")
-    return _find_or_create_folder(service, site_name, sites_id, drive_id)
+    folder_id, created = _find_or_create_folder(
+        service, site_name, sites_id, drive_id
+    )
+    cache.set(site_name, folder_id)
+    return folder_id, created
 
 
 def _find_or_create_folder(service, name, parent_id, drive_id):
