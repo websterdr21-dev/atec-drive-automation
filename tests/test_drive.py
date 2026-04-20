@@ -176,3 +176,134 @@ def test_get_atec_site_folder_reuses_existing(seeded_drive, drive_id):
 def test_get_atec_site_folder_raises_if_sites_missing(fake_drive, drive_id):
     with pytest.raises(FileNotFoundError, match="Sites"):
         drive_folders.get_atec_site_folder(fake_drive, drive_id, "Any")
+
+
+# ---------------------------------------------------------------------------
+# _AtecFolderCache + cache-aware get_atec_site_folder
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def tmp_cache(tmp_path, monkeypatch):
+    """
+    Inject a tmp_path-backed `_AtecFolderCache` as the module-level
+    singleton. Prevents tests from writing to the real
+    `data/atec_folder_cache.json`. Returns the cache instance so tests
+    can pre-populate or inspect it.
+    """
+    cache_path = tmp_path / "atec_folder_cache.json"
+    cache = drive_folders._AtecFolderCache(str(cache_path))
+    monkeypatch.setattr(drive_folders, "_CACHE", cache)
+    yield cache
+    monkeypatch.setattr(drive_folders, "_CACHE", None)
+
+
+def test_get_atec_site_folder_cache_hit_skips_drive(
+    seeded_drive, drive_id, tmp_cache
+):
+    svc = seeded_drive
+    tmp_cache.set("Waterfront", "prefetched-id-xyz")
+
+    lists_before = len(svc.list_queries)
+    creates_before = len(svc.create_calls)
+
+    site_id, created = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Waterfront"
+    )
+
+    assert site_id == "prefetched-id-xyz"
+    assert created is False
+    assert len(svc.list_queries) == lists_before  # no Drive list call
+    assert len(svc.create_calls) == creates_before  # no create call
+
+
+def test_get_atec_site_folder_cache_miss_writes_to_cache(
+    seeded_drive, drive_id, tmp_cache, tmp_path
+):
+    svc = seeded_drive
+    creates_before = len(svc.create_calls)
+
+    site_id, created = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Newsite"
+    )
+
+    assert created is True
+    assert len(svc.create_calls) == creates_before + 1
+    # Cache now populated in memory...
+    assert tmp_cache.get("Newsite") == site_id
+    # ...and persisted to disk.
+    cache_file = tmp_path / "atec_folder_cache.json"
+    assert cache_file.exists()
+    import json
+    on_disk = json.loads(cache_file.read_text(encoding="utf-8"))
+    assert on_disk == {"Newsite": site_id}
+
+
+def test_get_atec_site_folder_cache_miss_finds_existing_before_create(
+    seeded_drive, drive_id, tmp_cache
+):
+    svc = seeded_drive
+    existing = svc.add_folder("Waterfront", svc.ids["sites"])
+    creates_before = len(svc.create_calls)
+
+    site_id, created = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Waterfront"
+    )
+
+    # Reused the existing folder — no duplicate created (CACHE-03).
+    assert site_id == existing
+    assert created is False
+    assert len(svc.create_calls) == creates_before
+    # Still cached for next time.
+    assert tmp_cache.get("Waterfront") == existing
+
+
+def test_get_atec_site_folder_creates_cache_file_on_first_write(
+    seeded_drive, drive_id, tmp_path, monkeypatch
+):
+    # Point the singleton at a path whose PARENT dir also doesn't exist.
+    cache_path = tmp_path / "nested" / "dir" / "atec_folder_cache.json"
+    cache = drive_folders._AtecFolderCache(str(cache_path))
+    monkeypatch.setattr(drive_folders, "_CACHE", cache)
+
+    assert not cache_path.exists()
+    assert not cache_path.parent.exists()
+
+    drive_folders.get_atec_site_folder(seeded_drive, drive_id, "Anysite")
+
+    # Both the nested dir and the file now exist (CACHE-05).
+    assert cache_path.parent.exists()
+    assert cache_path.exists()
+
+    monkeypatch.setattr(drive_folders, "_CACHE", None)
+
+
+def test_get_atec_site_folder_stale_recovery_after_delete(
+    seeded_drive, drive_id, tmp_cache
+):
+    svc = seeded_drive
+
+    # Pre-populate with a bogus ID — simulates a cache entry for a
+    # folder that has since been deleted/moved on Drive.
+    tmp_cache.set("Waterfront", "stale-id-123")
+
+    # First call returns the stale ID directly — by design (D-04, D-05):
+    # the cache layer does not pre-validate.
+    site_id, created = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Waterfront"
+    )
+    assert site_id == "stale-id-123"
+    assert created is False
+
+    # Simulate the caller detecting staleness at actual use (D-05/D-06)
+    # and invoking the documented recovery API.
+    drive_folders._get_cache().delete("Waterfront")
+    assert drive_folders._get_cache().get("Waterfront") is None
+
+    # Retry — now falls through to find-or-create and repopulates cache.
+    new_id, created2 = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Waterfront"
+    )
+    assert new_id != "stale-id-123"
+    assert created2 is True
+    assert drive_folders._get_cache().get("Waterfront") == new_id
