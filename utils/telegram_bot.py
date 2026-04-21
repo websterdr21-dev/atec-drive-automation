@@ -38,7 +38,7 @@ from telegram.ext import (
     filters,
 )
 
-from utils.site_detection import is_fmas_site
+from utils.site_detection import is_fmas_site, resolve_fmas_site
 from utils.telegram_state import (
     STEP_COLLECTING,
     STEP_NAV,
@@ -658,8 +658,20 @@ async def _process_bookout(
         return
 
     state["client_details"] = details
-    state["site_name"] = details["site_name"]
     state["unit_number"] = details["unit_number"]
+
+    # Auto-correct site name via fuzzy match before any Drive calls.
+    raw_site = details["site_name"]
+    canonical = resolve_fmas_site(raw_site)
+    if canonical and canonical != raw_site:
+        details["site_name"] = canonical
+        state["client_details"] = details
+        await bot.send_message(
+            chat_id,
+            f"Site name corrected: '{raw_site}' \u2192 '{canonical}'. "
+            f"/cancel now if this is wrong.",
+        )
+    state["site_name"] = details["site_name"]
 
     # ---- 4. Stock-sheet lookup per item ----
     # Run BEFORE the site-type check so that _tmp_paths, _photo_names, and
@@ -691,7 +703,7 @@ async def _process_bookout(
     state["_photo_names"] = names
 
     # ---- 3b. Determine site type (FMAS vs ATEC direct) ----
-    state["is_fmas"] = is_fmas_site(details["site_name"])
+    state["is_fmas"] = resolve_fmas_site(details["site_name"]) is not None
 
     if swap_items:
         # Enter serial correction for the first not-found item before falling back to swap.
@@ -1143,7 +1155,7 @@ async def _handle_add_photos(
 
     # Resolve folder — determine FMAS vs ATEC via site list.
     service = _get_drive()
-    is_fmas = is_fmas_site(site)
+    is_fmas = resolve_fmas_site(site) is not None
     try:
         if is_fmas:
             folder_id, folder_url = await asyncio.to_thread(

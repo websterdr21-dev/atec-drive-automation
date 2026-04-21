@@ -8,6 +8,7 @@ Folder paths:
 
 from __future__ import annotations
 
+import difflib
 import json
 import logging
 import os
@@ -61,11 +62,45 @@ def get_atec_site_folder(service, drive_id, site_name):
     sites_id = _find_folder_exact(service, "Sites", drive_id, drive_id)
     if not sites_id:
         raise FileNotFoundError("'Sites' folder not found in Shared Drive root.")
+
+    # Fuzzy-match against existing Sites/ subfolders before creating.
+    canonical = _fuzzy_match_subfolder(service, drive_id, sites_id, site_name)
+    if canonical and canonical != site_name:
+        logger.info(
+            "Site name '%s' fuzzy-matched to existing folder '%s'", site_name, canonical
+        )
+        cached_id = cache.get(canonical)
+        if cached_id:
+            cache.set(site_name, cached_id)
+            return cached_id, False
+        site_name = canonical
+
     folder_id, created = _find_or_create_folder(
         service, site_name, sites_id, drive_id
     )
     cache.set(site_name, folder_id)
     return folder_id, created
+
+
+def _fuzzy_match_subfolder(
+    service, drive_id, parent_id: str, name: str, cutoff: float = 0.8
+) -> str | None:
+    """
+    Return the name of the closest existing subfolder under parent_id, or None.
+
+    Uses difflib with the given cutoff. Returns None when no folder is close
+    enough, allowing the caller to proceed with find-or-create as normal.
+    """
+    subfolders = list_subfolders(service, parent_id, drive_id)
+    if not subfolders:
+        return None
+    folder_names = [f["name"] for f in subfolders]
+    lower_names = [n.lower() for n in folder_names]
+    normalized = name.strip().lower()
+    matches = difflib.get_close_matches(normalized, lower_names, n=1, cutoff=cutoff)
+    if matches:
+        return folder_names[lower_names.index(matches[0])]
+    return None
 
 
 def _find_or_create_folder(service, name, parent_id, drive_id):
@@ -156,6 +191,12 @@ def get_unit_folder(service, drive_id, site_name, unit_number, is_fmas):
         parent_id = fmas_id
     else:
         parent_id = sites_id
+        canonical = _fuzzy_match_subfolder(service, drive_id, parent_id, site_name)
+        if canonical and canonical != site_name:
+            logger.info(
+                "Site name '%s' fuzzy-matched to existing folder '%s'", site_name, canonical
+            )
+            site_name = canonical
 
     site_id, site_created = _find_or_create_folder(service, site_name, parent_id, drive_id)
     unit_id, unit_created = _find_or_create_folder(service, unit_folder_name, site_id, drive_id)

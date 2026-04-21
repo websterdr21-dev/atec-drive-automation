@@ -32,6 +32,7 @@ EXPIRY_SECONDS = 30 * 60  # 30 minutes
 
 STEP_COLLECTING        = "collecting"
 STEP_PARSING           = "parsing"
+STEP_CONFIRM_SITE      = "confirm_site"       # waiting for user to confirm fuzzy-matched site name
 STEP_SWAP_CONFIRM      = "swap_confirm"
 STEP_SERIAL_CORRECTION = "serial_correction"  # waiting for user to correct extracted serial
 STEP_TYPE_SELECT       = "type_select"        # waiting for user to confirm FMAS vs ATEC

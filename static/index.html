@@ -571,6 +571,7 @@ table.data tr:hover td { background: #fafafa; }
 
         <!-- Confirm card -->
         <div id="bo-confirm-card" style="display:none">
+          <div id="bo-site-correction" style="display:none;margin-bottom:0.75rem"></div>
           <div class="confirm-card">
             <table id="bo-details-table"></table>
           </div>
@@ -982,6 +983,14 @@ function showConfirmCard(d) {
       <td>${label}</td>
       <td contenteditable="true" data-key="${k}" style="outline:none;color:var(--text)">${d[k] || '<span style="color:var(--muted)">—</span>'}</td>
     </tr>`).join('');
+  const corrEl = document.getElementById('bo-site-correction');
+  if (d.site_name_raw) {
+    corrEl.innerHTML = `Site name corrected: <strong>${d.site_name_raw}</strong> → <strong>${d.site_name}</strong>. Edit above if wrong.`;
+    corrEl.className = 'alert alert-ok';
+    corrEl.style.display = 'block';
+  } else {
+    corrEl.style.display = 'none';
+  }
   document.getElementById('bo-confirm-card').style.display = 'block';
 }
 

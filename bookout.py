@@ -164,9 +164,19 @@ def cmd_bookout():
             details[key] = val if val else details.get(key)
 
     # ------------------------------------------------------------------
+    # Site name spelling correction (fuzzy-match against FMAS list)
+    # ------------------------------------------------------------------
+    from utils.site_detection import is_fmas_site, resolve_fmas_site
+    raw_site = details["site_name"]
+    canonical = resolve_fmas_site(raw_site)
+    if canonical and canonical != raw_site:
+        print(f"\n  Note: site name in ticket: '{raw_site}'")
+        if _confirm(f"  Closest match: '{canonical}'. Use corrected name? (y/n): "):
+            details["site_name"] = canonical
+
+    # ------------------------------------------------------------------
     # Step 2: FMAS or direct site (auto-detected)
     # ------------------------------------------------------------------
-    from utils.site_detection import is_fmas_site
     _divider()
     is_fmas = is_fmas_site(details["site_name"])
     if is_fmas:

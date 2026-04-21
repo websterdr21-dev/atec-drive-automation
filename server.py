@@ -265,9 +265,17 @@ async def extract_ticket(request: Request):
     if not ticket:
         raise HTTPException(400, "No ticket text provided")
     from utils.extract import extract_client_details
-    from utils.site_detection import is_fmas_site
+    from utils.site_detection import resolve_fmas_site
     details = extract_client_details(ticket)
-    details["is_fmas"] = is_fmas_site(details.get("site_name", ""))
+    raw_site = details.get("site_name", "")
+    canonical = resolve_fmas_site(raw_site)
+    if canonical is not None:
+        details["is_fmas"] = True
+        if canonical != raw_site:
+            details["site_name_raw"] = raw_site
+            details["site_name"] = canonical
+    else:
+        details["is_fmas"] = False
     return details
 
 
@@ -277,8 +285,8 @@ async def extract_ticket(request: Request):
 
 @app.get("/api/check-site-type")
 def check_site_type(site_name: str):
-    from utils.site_detection import is_fmas_site
-    return {"is_fmas": is_fmas_site(site_name)}
+    from utils.site_detection import resolve_fmas_site
+    return {"is_fmas": resolve_fmas_site(site_name) is not None}
 
 
 # ---------------------------------------------------------------------------
