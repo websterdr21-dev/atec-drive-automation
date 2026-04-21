@@ -12,8 +12,8 @@ Two targeted enhancements to the existing bookout workflow. Phase 1 eliminates t
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: FMAS Site Auto-Detection** - Load `sites.txt` and automatically determine site type from the extracted site name, eliminating the manual prompt
-- [ ] **Phase 2: Direct ATEC Folder ID Cache** - Cache Direct ATEC top-level folder IDs to disk so repeat bookouts skip the Drive API traversal entirely
+- [x] **Phase 1: FMAS Site Auto-Detection** - Load `sites.txt` and automatically determine site type from the extracted site name, eliminating the manual prompt
+- [x] **Phase 2: Direct ATEC Folder ID Cache** - Cache Direct ATEC top-level folder IDs to disk so repeat bookouts skip the Drive API traversal entirely
 
 ## Phase Details
 
@@ -61,5 +61,6 @@ Phases execute in numeric order: 1 → 2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. FMAS Site Auto-Detection | 0/2 | Planned | - |
-| 2. Direct ATEC Folder ID Cache | 0/TBD | Not started | - |
+| 1. FMAS Site Auto-Detection | 2/2 | Complete | 2026-04-16 |
+| 01.1. Telegram Bot Bug Fixes | 2/2 | Complete | 2026-04-17 |
+| 2. Direct ATEC Folder ID Cache | 2/2 | Complete | 2026-04-21 |
