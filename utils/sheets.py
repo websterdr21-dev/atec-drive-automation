@@ -11,6 +11,7 @@ Flow:
 import io
 import os
 import datetime
+import pathlib
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 import openpyxl
 from openpyxl.styles import PatternFill
@@ -18,6 +19,8 @@ from utils.auth import get_drive_service
 
 
 RED_FILL = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+
+_CACHE_DIR = pathlib.Path(__file__).parent.parent / "data" / "sheet_cache"
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +85,7 @@ def list_serial_number_sheets(service, folder_id, drive_id):
         driveId=drive_id,
         includeItemsFromAllDrives=True,
         supportsAllDrives=True,
-        fields="files(id, name)",
+        fields="files(id, name, modifiedTime)",
     ).execute()
     return results.get("files", [])
 
@@ -101,6 +104,29 @@ def _download_xlsx(service, file_id):
         _, done = downloader.next_chunk()
     buf.seek(0)
     return openpyxl.load_workbook(buf)
+
+
+def _download_xlsx_cached(service, file_id, modified_time):
+    """Return cached workbook if Drive modifiedTime matches; download and cache otherwise.
+
+    Delegates to _download_xlsx on cache miss so tests can patch _download_xlsx normally.
+    """
+    if modified_time:
+        meta = _CACHE_DIR / f"{file_id}.meta"
+        cached = _CACHE_DIR / f"{file_id}.xlsx"
+        if meta.exists() and cached.exists() and meta.read_text().strip() == modified_time:
+            return openpyxl.load_workbook(cached)
+
+    wb = _download_xlsx(service, file_id)
+
+    if modified_time:
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        buf = io.BytesIO()
+        wb.save(buf)
+        (_CACHE_DIR / f"{file_id}.xlsx").write_bytes(buf.getvalue())
+        (_CACHE_DIR / f"{file_id}.meta").write_text(modified_time)
+
+    return wb
 
 
 def _upload_xlsx(service, file_id, workbook):
@@ -167,7 +193,7 @@ def find_serial_number(service, drive_id, serial_number):
         return False
 
     for file_info in sheets:
-        wb = _download_xlsx(service, file_info["id"])
+        wb = _download_xlsx_cached(service, file_info["id"], file_info.get("modifiedTime"))
         for ws in wb.worksheets:
             # Find the real header row (first row where col A is "Serial Number")
             header_row_idx = None
