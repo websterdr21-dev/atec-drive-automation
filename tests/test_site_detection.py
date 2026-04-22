@@ -1,7 +1,7 @@
 """Tests for utils/site_detection — FMAS membership check."""
 
 import pytest
-from utils.site_detection import is_fmas_site, reload
+from utils.site_detection import is_fmas_site, reload, resolve_fmas_site
 
 
 @pytest.fixture(autouse=True)
@@ -70,3 +70,25 @@ class TestReload:
         count = reload(str(custom))
         assert count == 1
         assert is_fmas_site("Only Site") is True
+
+
+class TestFuzzyMatch:
+    def test_close_misspelling_resolves_to_canonical(self):
+        assert resolve_fmas_site("The Topazz") == "The Topaz"
+
+    def test_resolve_preserves_original_case(self):
+        # Lowercase misspelling → canonical retains original casing
+        assert resolve_fmas_site("the topazz") == "The Topaz"
+
+    def test_too_far_misspelling_returns_none(self):
+        assert resolve_fmas_site("Completely Different Place") is None
+
+    def test_is_fmas_site_close_misspelling_returns_true(self):
+        assert is_fmas_site("Emerald Plaec") is True
+
+    def test_is_fmas_site_too_far_returns_false(self):
+        assert is_fmas_site("Completely Different Place") is False
+
+    def test_custom_cutoff_rejects_close_match(self):
+        # cutoff=1.0 means exact-only — a near-miss must return None
+        assert resolve_fmas_site("The Topazz", cutoff=1.0) is None

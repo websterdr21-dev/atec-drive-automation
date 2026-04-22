@@ -285,6 +285,115 @@ def test_get_atec_site_folder_creates_cache_file_on_first_write(
     monkeypatch.setattr(drive_folders, "_CACHE", None)
 
 
+# ---------------------------------------------------------------------------
+# _fuzzy_match_subfolder — standalone
+# ---------------------------------------------------------------------------
+
+def test_fuzzy_match_subfolder_returns_canonical_on_close_match(fake_drive, drive_id):
+    parent = fake_drive.add_folder("Sites", drive_id)
+    fake_drive.add_folder("Waterfront Estate", parent)
+    result = drive_folders._fuzzy_match_subfolder(
+        fake_drive, drive_id, parent, "Watrefront Estate"
+    )
+    assert result == "Waterfront Estate"  # original case preserved
+
+
+def test_fuzzy_match_subfolder_returns_none_when_no_close_match(fake_drive, drive_id):
+    parent = fake_drive.add_folder("Sites", drive_id)
+    fake_drive.add_folder("Waterfront", parent)
+    result = drive_folders._fuzzy_match_subfolder(
+        fake_drive, drive_id, parent, "Completely Different Place"
+    )
+    assert result is None
+
+
+def test_fuzzy_match_subfolder_returns_none_for_empty_parent(fake_drive, drive_id):
+    parent = fake_drive.add_folder("Sites", drive_id)
+    result = drive_folders._fuzzy_match_subfolder(
+        fake_drive, drive_id, parent, "Anything"
+    )
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# get_atec_site_folder — fuzzy branches
+# ---------------------------------------------------------------------------
+
+def test_get_atec_site_folder_fuzzy_match_reuses_existing_uncached(
+    seeded_drive, drive_id, tmp_cache
+):
+    svc = seeded_drive
+    existing = svc.add_folder("Waterfront", svc.ids["sites"])
+    creates_before = len(svc.create_calls)
+
+    # "Waterfrontt" fuzzy-matches "Waterfront" — no new folder created
+    site_id, created = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Waterfrontt"
+    )
+
+    assert site_id == existing
+    assert created is False
+    assert len(svc.create_calls) == creates_before
+    assert tmp_cache.get("Waterfront") == existing
+
+
+def test_get_atec_site_folder_fuzzy_match_with_canonical_already_cached(
+    seeded_drive, drive_id, tmp_cache
+):
+    svc = seeded_drive
+    svc.add_folder("Waterfront", svc.ids["sites"])
+    tmp_cache.set("Waterfront", "cached-wf-id")
+    creates_before = len(svc.create_calls)
+
+    # Misspelling misses cache; fuzzy finds canonical; canonical IS cached
+    # → returns cached ID, writes alias for misspelling
+    site_id, created = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Waterfrontt"
+    )
+
+    assert site_id == "cached-wf-id"
+    assert created is False
+    assert tmp_cache.get("Waterfrontt") == "cached-wf-id"
+    assert len(svc.create_calls) == creates_before
+
+
+def test_get_atec_site_folder_no_fuzzy_match_creates_new(
+    seeded_drive, drive_id, tmp_cache
+):
+    svc = seeded_drive
+    svc.add_folder("Waterfront", svc.ids["sites"])
+    creates_before = len(svc.create_calls)
+
+    # Name too different — no match, new folder created
+    site_id, created = drive_folders.get_atec_site_folder(
+        svc, drive_id, "Completely Different Place"
+    )
+
+    assert created is True
+    assert len(svc.create_calls) == creates_before + 1
+    assert svc.records[site_id]["name"] == "Completely Different Place"
+
+
+# ---------------------------------------------------------------------------
+# get_unit_folder — ATEC fuzzy path (is_fmas=False)
+# ---------------------------------------------------------------------------
+
+def test_get_unit_folder_atec_fuzzy_match_reuses_site(seeded_drive, drive_id):
+    svc = seeded_drive
+    existing_site = svc.add_folder("Waterfront", svc.ids["sites"])
+    creates_before = len(svc.create_calls)
+
+    # Misspelled site — fuzzy resolves to existing, only unit folder created
+    unit_id, url, site_created, unit_created = drive_folders.get_unit_folder(
+        svc, drive_id, "Waterfrontt", "5", is_fmas=False
+    )
+
+    assert site_created is False
+    assert unit_created is True
+    assert svc.records[unit_id]["parents"] == [existing_site]
+    assert len(svc.create_calls) == creates_before + 1  # unit only
+
+
 def test_get_atec_site_folder_stale_recovery_after_delete(
     seeded_drive, drive_id, tmp_cache
 ):

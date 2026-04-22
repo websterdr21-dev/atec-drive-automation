@@ -1,3 +1,17 @@
+## Context Navigation
+
+When understanding the codebase, docs, or any files in this project:
+1. ALWAYS query the knowledge graph first: `/graphify query "Your question"`
+2. Only read raw files if explicitly told "read the file" or "look at the raw file"
+3. Use `graphify-out/GRAPH_REPORT.md` as navigation entrypoint
+
+## Graphify Auto-Update
+
+- After creating or editing any file: run `python -m graphify update .` to add it to the graph (code files only — free, no LLM)
+- After completing a task with doc/config changes: run `/graphify . --update` to re-extract semantic content
+
+---
+
 # ATEC Stock Bookout Automation
 
 Python tooling that automates the stock bookout + install-photo workflow for ATEC, a fiber network company. All Drive content lives in the `Atec Cape Town` Shared Drive, accessed via a service account.
