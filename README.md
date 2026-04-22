@@ -21,6 +21,18 @@ Three interfaces share a common `utils/` core:
 - **Photo upload** — uploads bookout and post-install photos with a strict naming convention; appends a numeric suffix on conflict (never overwrites)
 - **Accounts email** — formats a ready-to-copy book-out email (not sent automatically — the user copies it into Gmail)
 - **Swap mode** — if a serial is not found in any sheet, the workflow skips the sheet update and email but still creates the Drive folder and uploads photos
+- **Fuzzy site matching** — corrects minor site name misspellings before any Drive calls are made
+
+---
+
+## Performance
+
+The Telegram bot is optimised for speed — the biggest wait a technician experiences is the initial processing after sending a ticket + photo:
+
+- **Parallel extraction** — photo vision and ticket text parsing run simultaneously via `asyncio.gather`, halving the Claude API wait
+- **Parallel downloads** — multiple photos are downloaded from Telegram concurrently
+- **Sheet caching** — stock sheet `.xlsx` files are cached locally by Drive `modifiedTime`; re-downloaded only when a sheet changes. On a typical day this means one download per bookout (the sheet that was just updated) and cache hits for all others
+- **Fast model** — `claude-haiku-4-5` is used for extraction; structured JSON tasks don't require a larger model and response times are significantly faster
 
 ---
 
@@ -34,12 +46,15 @@ utils/
   auth.py                 — service-account auth, builds Drive/Sheets/Docs/Gmail services
   env.py                  — central .env loader
   drive_folders.py        — folder navigation + find-or-create (never duplicates)
-  sheets.py               — xlsx download/search/update, red-fill on bookout
+  sheets.py               — xlsx download/search/update, red-fill on bookout, modifiedTime cache
   photos.py               — photo naming convention + upload (auto-suffixes on conflict)
   extract.py              — Claude-powered ticket + serial-label extraction
   gmail.py                — formats the accounts email as copy-ready text
   telegram_bot.py         — Telegram conversational bot
   telegram_state.py       — in-memory per-chat state machine for the bot
+data/
+  sheet_cache/            — local cache of stock xlsx files (auto-managed, not committed)
+  atec_site_structures.json — persisted folder path templates for direct ATEC sites
 tests/                    — pytest suite (FakeDriveService, mocked Anthropic)
 service_account.json      — service-account credentials (local only; not committed)
 .env                      — environment variables (see below)
@@ -128,6 +143,8 @@ When `TELEGRAM_BOT_TOKEN` is set the bot starts automatically with the FastAPI a
 
 Commands: `/bookout`, `/addphotos`, `/checkstock`, `/cancel`, `/start`.
 
+Send the ticket text as the caption on your serial-label photo(s). Include any additional photos (device shot, ONT placement, speed test) in the same message.
+
 ---
 
 ## Photo naming convention
@@ -183,3 +200,4 @@ Atec Cape Town (root)
 - Stock sheet writes abort atomically if the serial is not found.
 - The accounts email is formatted but never sent — a human is always in the loop.
 - `service_account.json` and `.env` are not committed to version control.
+- `data/sheet_cache/` is local only and not committed — safe to delete; it will be rebuilt on next run.
