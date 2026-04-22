@@ -88,15 +88,25 @@ def _fuzzy_match_subfolder(
     """
     Return the name of the closest existing subfolder under parent_id, or None.
 
-    Uses difflib with the given cutoff. Returns None when no folder is close
-    enough, allowing the caller to proceed with find-or-create as normal.
+    Match order:
+    1. Prefix: Drive folder name is a word-boundary prefix of the input
+       (handles "De Plattekloof" matching "De Plattekloof Life Style Estate")
+    2. Ratio: difflib at the given cutoff (handles typos / transpositions)
     """
     subfolders = list_subfolders(service, parent_id, drive_id)
     if not subfolders:
         return None
     folder_names = [f["name"] for f in subfolders]
-    lower_names = [n.lower() for n in folder_names]
     normalized = name.strip().lower()
+
+    for folder_name in folder_names:
+        fn_lower = folder_name.strip().lower()
+        if normalized == fn_lower:
+            return folder_name
+        if normalized.startswith(fn_lower + " ") or normalized.startswith(fn_lower + "-"):
+            return folder_name
+
+    lower_names = [n.lower() for n in folder_names]
     matches = difflib.get_close_matches(normalized, lower_names, n=1, cutoff=cutoff)
     if matches:
         return folder_names[lower_names.index(matches[0])]

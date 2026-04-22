@@ -53,12 +53,19 @@ def resolve_fmas_site(site_name: str, cutoff: float = 0.8) -> str | None:
     """
     Return the canonical FMAS site name for site_name, or None if no match.
 
-    Tries exact (case-insensitive) first, then fuzzy-matches using difflib
-    at the given cutoff. Returns original-case canonical name on match.
+    Match order:
+    1. Exact (case-insensitive)
+    2. Prefix: canonical name is a word-boundary prefix of the input
+       (handles "De Plattekloof" matching "De Plattekloof Life Style Estate")
+    3. Ratio: difflib at the given cutoff (handles typos / transpositions)
     """
     normalized = site_name.strip().lower()
     for original in _FMAS_SITES_ORIGINAL:
         if original.strip().lower() == normalized:
+            return original
+    for original in _FMAS_SITES_ORIGINAL:
+        canon = original.strip().lower()
+        if normalized.startswith(canon + " ") or normalized.startswith(canon + "-"):
             return original
     lower_list = [s.strip().lower() for s in _FMAS_SITES_ORIGINAL]
     matches = difflib.get_close_matches(normalized, lower_list, n=1, cutoff=cutoff)
