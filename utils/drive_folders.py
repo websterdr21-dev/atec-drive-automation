@@ -191,12 +191,13 @@ def get_unit_folder(service, drive_id, site_name, unit_number, is_fmas):
         parent_id = fmas_id
     else:
         parent_id = sites_id
-        canonical = _fuzzy_match_subfolder(service, drive_id, parent_id, site_name)
-        if canonical and canonical != site_name:
-            logger.info(
-                "Site name '%s' fuzzy-matched to existing folder '%s'", site_name, canonical
-            )
-            site_name = canonical
+
+    canonical = _fuzzy_match_subfolder(service, drive_id, parent_id, site_name)
+    if canonical and canonical != site_name:
+        logger.info(
+            "Site name '%s' fuzzy-matched to existing folder '%s'", site_name, canonical
+        )
+        site_name = canonical
 
     site_id, site_created = _find_or_create_folder(service, site_name, parent_id, drive_id)
     unit_id, unit_created = _find_or_create_folder(service, unit_folder_name, site_id, drive_id)
