@@ -252,7 +252,7 @@ class TestClassifyPhotoNames:
 
 
 class TestCollectItemsFromExtractions:
-    def test_stops_at_first_non_serial(self):
+    def test_collects_serials_regardless_of_position(self):
         from utils.telegram_bot import collect_items_from_extractions
         extractions = [
             {"serial_number": "SN1", "item_code": "A"},
@@ -260,8 +260,9 @@ class TestCollectItemsFromExtractions:
             {"serial_number": "SN3", "item_code": "C"},
         ]
         items = collect_items_from_extractions(extractions)
-        assert len(items) == 1
+        assert len(items) == 2
         assert items[0]["serial"] == "SN1"
+        assert items[1]["serial"] == "SN3"
 
     def test_collects_all_leading_serials(self):
         from utils.telegram_bot import collect_items_from_extractions

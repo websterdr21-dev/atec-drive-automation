@@ -128,70 +128,59 @@ def classify_photo_names(extractions: list[dict]) -> list[tuple[str, str]]:
     """
     Given the ordered list of vision-extraction results (one per photo in the
     media group), return a list of (role, filename) pairs matching the ATEC
-    naming convention:
+    naming convention.
 
-        Serial label photos (N at the start, while extraction returned a
-        serial)       → 01_Serial_Number.jpg (single) or _01.jpg, _02, … (multiple)
-        Next photo    → 04_Device_Photo.jpg
-        Following     → 02_ONT_Router_Placement.jpg
-        Following     → 05_Speed_Test.jpg
-        Remaining     → 03_Installation_01.jpg, _02, …
+    Serials are found anywhere in the list (Telegram media groups may arrive
+    out of order). Serial photos are assigned names first, then the remaining
+    non-serial photos are assigned positional names.
 
-    `extractions[i]` is the dict returned by extract_serial_from_photo, or
-    an empty dict / one with serial_number == None for non-label photos.
+        Serial label photos → 01_Serial_Number.jpg (single) or _01, _02 … (multiple)
+        Next non-serial     → 04_Device_Photo.jpg
+        Following           → 02_ONT_Router_Placement.jpg
+        Following           → 05_Speed_Test.jpg
+        Remaining           → 03_Installation_01.jpg, _02, …
 
     Role strings: "serial", "device", "ont", "speed", "install".
     """
-    # Split into leading labels + remainder
-    n_labels = 0
-    for e in extractions:
-        if e and e.get("serial_number"):
-            n_labels += 1
-        else:
-            break
+    serial_indices = [i for i, e in enumerate(extractions) if e and e.get("serial_number")]
+    non_serial_indices = [i for i in range(len(extractions)) if i not in set(serial_indices)]
 
-    names: list[tuple[str, str]] = []
+    n_labels = len(serial_indices)
+    names: list[tuple[str, str]] = [None] * len(extractions)
 
     if n_labels == 1:
-        names.append(("serial", "01_Serial_Number.jpg"))
+        names[serial_indices[0]] = ("serial", "01_Serial_Number.jpg")
     else:
-        for i in range(n_labels):
-            names.append(("serial", f"01_Serial_Number_{i + 1:02d}.jpg"))
+        for rank, idx in enumerate(serial_indices):
+            names[idx] = ("serial", f"01_Serial_Number_{rank + 1:02d}.jpg")
 
-    positional = ["device", "ont", "speed"]
-    positional_filenames = {
-        "device": "04_Device_Photo.jpg",
-        "ont": "02_ONT_Router_Placement.jpg",
-        "speed": "05_Speed_Test.jpg",
-    }
-
-    remaining = list(range(n_labels, len(extractions)))
-    for role in positional:
-        if not remaining:
-            break
-        remaining.pop(0)
-        names.append((role, positional_filenames[role]))
-
+    positional = [
+        ("device", "04_Device_Photo.jpg"),
+        ("ont",    "02_ONT_Router_Placement.jpg"),
+        ("speed",  "05_Speed_Test.jpg"),
+    ]
     install_idx = 1
-    for _ in remaining:
-        names.append(("install", f"03_Installation_{install_idx:02d}.jpg"))
-        install_idx += 1
+    for rank, idx in enumerate(non_serial_indices):
+        if rank < len(positional):
+            names[idx] = positional[rank]
+        else:
+            names[idx] = ("install", f"03_Installation_{install_idx:02d}.jpg")
+            install_idx += 1
 
     return names
 
 
 def collect_items_from_extractions(extractions: list[dict]) -> list[dict]:
-    """Extract the leading label photos as items."""
-    items: list[dict] = []
-    for e in extractions:
-        if not e or not e.get("serial_number"):
-            break
-        items.append({
+    """Extract all serial label photos as items (order-independent)."""
+    return [
+        {
             "serial":    e["serial_number"],
             "item_code": e.get("item_code") or "",
-            "is_swap":   False,  # filled in after sheet search
-        })
-    return items
+            "is_swap":   False,
+        }
+        for e in extractions
+        if e and e.get("serial_number")
+    ]
 
 
 def mark_swaps(items: list[dict], stock_results: list[Optional[dict]]) -> None:
