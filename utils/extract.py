@@ -61,13 +61,22 @@ def extract_client_details(ticket_text: str) -> dict:
 # ---------------------------------------------------------------------------
 
 SERIAL_PROMPT = """This is a photo of a networking device or its serial number label.
-Extract the serial number and item/model code.
+
+Find the serial number and item/model code on the label. They are typically labelled:
+  Serial number: S/N, SN, Serial No, Serial Number
+  Item/model code: P/N, PN, Part No, Part Number, Model, Item Code
+
+Rules:
+- Copy characters EXACTLY as printed — preserve all leading zeros and hyphens
+- If a character is ambiguous (e.g. 0 vs O, 1 vs I), favour digits in serial fields
+- If the label is partially obscured or the photo is blurry, return your best reading
+
 Return ONLY a JSON object with these exact keys (use null if not found):
 {
   "serial_number": "...",
   "item_code": "..."
 }
-Only return the JSON — no explanation."""
+No explanation — JSON only."""
 
 
 def extract_serial_from_photo(image_path: str) -> dict:
@@ -83,7 +92,7 @@ def extract_serial_from_photo(image_path: str) -> dict:
 
     client = _get_client()
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-sonnet-4-6",
         max_tokens=256,
         messages=[
             {
