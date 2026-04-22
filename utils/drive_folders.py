@@ -90,8 +90,11 @@ def _fuzzy_match_subfolder(
 
     Match order:
     1. Exact (case-insensitive)
-    2. Prefix: Drive folder name is a word-boundary prefix of the input
-       (handles "De Plattekloof" matching "De Plattekloof Life Style Estate")
+    2. Prefix (both directions):
+       - Drive name is a word-boundary prefix of the input
+         (handles "De Plattekloof" matching "De Plattekloof Life Style Estate")
+       - Input is a word-boundary prefix of the Drive name
+         (handles "Burgundy" matching "Burgundy Estate", "Table View" → "Table View Gardens")
     3. Full-string ratio: handles pure typos ("Alphine" vs "Alpine")
     4. Progressive word-prefix ratio: tries shorter and shorter word-prefixes
        of the input against Drive folders — handles typo + extra words combined
@@ -109,9 +112,10 @@ def _fuzzy_match_subfolder(
         if normalized == fn_lower:
             return folder_name
 
-    # 2. Prefix
+    # 2. Prefix (both directions)
     for folder_name, fn_lower in zip(folder_names, lower_names):
-        if normalized.startswith(fn_lower + " ") or normalized.startswith(fn_lower + "-"):
+        if (normalized.startswith(fn_lower + " ") or normalized.startswith(fn_lower + "-") or
+                fn_lower.startswith(normalized + " ") or fn_lower.startswith(normalized + "-")):
             return folder_name
 
     # 3. Full-string ratio

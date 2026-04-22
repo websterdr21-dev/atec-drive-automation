@@ -298,6 +298,25 @@ def test_fuzzy_match_subfolder_returns_canonical_on_close_match(fake_drive, driv
     assert result == "Waterfront Estate"  # original case preserved
 
 
+def test_fuzzy_match_subfolder_reverse_prefix_drive_longer(fake_drive, drive_id):
+    # Drive has "Burgundy Estate", ticket says "Burgundy" (ratio 0.70, below cutoff)
+    parent = fake_drive.add_folder("Sites", drive_id)
+    fake_drive.add_folder("Burgundy Estate", parent)
+    result = drive_folders._fuzzy_match_subfolder(
+        fake_drive, drive_id, parent, "Burgundy"
+    )
+    assert result == "Burgundy Estate"
+
+
+def test_fuzzy_match_subfolder_reverse_prefix_table_view(fake_drive, drive_id):
+    parent = fake_drive.add_folder("Sites", drive_id)
+    fake_drive.add_folder("Table View Gardens", parent)
+    result = drive_folders._fuzzy_match_subfolder(
+        fake_drive, drive_id, parent, "Table View"
+    )
+    assert result == "Table View Gardens"
+
+
 def test_fuzzy_match_subfolder_returns_none_when_no_close_match(fake_drive, drive_id):
     parent = fake_drive.add_folder("Sites", drive_id)
     fake_drive.add_folder("Waterfront", parent)
