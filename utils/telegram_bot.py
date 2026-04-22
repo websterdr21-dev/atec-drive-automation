@@ -611,12 +611,17 @@ async def _process_bookout(
         return
 
     # ---- 2+3. Vision on each photo + ticket extraction in parallel ----
+    # Semaphore caps concurrent Anthropic vision calls to avoid TPM rate limits
+    # when many photos are sent at once (e.g. 6 photos → 6 parallel image uploads)
+    _vision_sem = asyncio.Semaphore(2)
+
     async def _vision(path: str) -> dict:
-        try:
-            return await asyncio.to_thread(extract_serial_from_photo, path)
-        except Exception as e:
-            logger.warning("Vision failed on %s: %s", path, e)
-            return {"serial_number": None, "item_code": None}
+        async with _vision_sem:
+            try:
+                return await asyncio.to_thread(extract_serial_from_photo, path)
+            except Exception as e:
+                logger.warning("Vision failed on %s: %s", path, e)
+                return {"serial_number": None, "item_code": None}
 
     vision_tasks = [_vision(p) for p in paths]
     ticket_task = asyncio.to_thread(extract_client_details, caption)
