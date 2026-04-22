@@ -89,27 +89,44 @@ def _fuzzy_match_subfolder(
     Return the name of the closest existing subfolder under parent_id, or None.
 
     Match order:
-    1. Prefix: Drive folder name is a word-boundary prefix of the input
+    1. Exact (case-insensitive)
+    2. Prefix: Drive folder name is a word-boundary prefix of the input
        (handles "De Plattekloof" matching "De Plattekloof Life Style Estate")
-    2. Ratio: difflib at the given cutoff (handles typos / transpositions)
+    3. Full-string ratio: handles pure typos ("Alphine" vs "Alpine")
+    4. Progressive word-prefix ratio: tries shorter and shorter word-prefixes
+       of the input against Drive folders — handles typo + extra words combined
+       (e.g. "De Pattekloof Life Style" → "De Pattekloof" → matches "De Plattekloof")
     """
     subfolders = list_subfolders(service, parent_id, drive_id)
     if not subfolders:
         return None
     folder_names = [f["name"] for f in subfolders]
+    lower_names = [n.lower() for n in folder_names]
     normalized = name.strip().lower()
 
-    for folder_name in folder_names:
-        fn_lower = folder_name.strip().lower()
+    # 1. Exact
+    for folder_name, fn_lower in zip(folder_names, lower_names):
         if normalized == fn_lower:
             return folder_name
+
+    # 2. Prefix
+    for folder_name, fn_lower in zip(folder_names, lower_names):
         if normalized.startswith(fn_lower + " ") or normalized.startswith(fn_lower + "-"):
             return folder_name
 
-    lower_names = [n.lower() for n in folder_names]
+    # 3. Full-string ratio
     matches = difflib.get_close_matches(normalized, lower_names, n=1, cutoff=cutoff)
     if matches:
         return folder_names[lower_names.index(matches[0])]
+
+    # 4. Progressive word-prefix ratio (min 2 words)
+    words = normalized.split()
+    for n_words in range(len(words) - 1, 1, -1):
+        prefix = " ".join(words[:n_words])
+        matches = difflib.get_close_matches(prefix, lower_names, n=1, cutoff=cutoff)
+        if matches:
+            return folder_names[lower_names.index(matches[0])]
+
     return None
 
 

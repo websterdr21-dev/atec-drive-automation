@@ -56,21 +56,35 @@ def resolve_fmas_site(site_name: str, cutoff: float = 0.8) -> str | None:
     Match order:
     1. Exact (case-insensitive)
     2. Prefix: canonical name is a word-boundary prefix of the input
-       (handles "De Plattekloof" matching "De Plattekloof Life Style Estate")
-    3. Ratio: difflib at the given cutoff (handles typos / transpositions)
+    3. Full-string ratio: handles pure typos
+    4. Progressive word-prefix ratio: handles typo + extra words combined
     """
     normalized = site_name.strip().lower()
-    for original in _FMAS_SITES_ORIGINAL:
-        if original.strip().lower() == normalized:
+    lower_list = [s.strip().lower() for s in _FMAS_SITES_ORIGINAL]
+
+    # 1. Exact
+    for original, canon in zip(_FMAS_SITES_ORIGINAL, lower_list):
+        if canon == normalized:
             return original
-    for original in _FMAS_SITES_ORIGINAL:
-        canon = original.strip().lower()
+
+    # 2. Prefix
+    for original, canon in zip(_FMAS_SITES_ORIGINAL, lower_list):
         if normalized.startswith(canon + " ") or normalized.startswith(canon + "-"):
             return original
-    lower_list = [s.strip().lower() for s in _FMAS_SITES_ORIGINAL]
+
+    # 3. Full-string ratio
     matches = difflib.get_close_matches(normalized, lower_list, n=1, cutoff=cutoff)
     if matches:
         return _FMAS_SITES_ORIGINAL[lower_list.index(matches[0])]
+
+    # 4. Progressive word-prefix ratio (min 2 words)
+    words = normalized.split()
+    for n_words in range(len(words) - 1, 1, -1):
+        prefix = " ".join(words[:n_words])
+        matches = difflib.get_close_matches(prefix, lower_list, n=1, cutoff=cutoff)
+        if matches:
+            return _FMAS_SITES_ORIGINAL[lower_list.index(matches[0])]
+
     return None
 
 
