@@ -43,7 +43,7 @@ Ticket text:
 def extract_client_details(ticket_text: str) -> dict:
     client = _get_client()
     response = client.messages.create(
-        model="claude-opus-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=512,
         messages=[{"role": "user", "content": TICKET_PROMPT + ticket_text}],
     )
@@ -83,7 +83,7 @@ def extract_serial_from_photo(image_path: str) -> dict:
 
     client = _get_client()
     response = client.messages.create(
-        model="claude-opus-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=256,
         messages=[
             {
