@@ -599,34 +599,33 @@ async def _process_bookout(
     state["ticket_text"] = caption
     state["pending_photos"] = photos
 
-    # ---- 1. Download every photo ----
-    paths: list[str] = []
+    # ---- 1. Download every photo in parallel ----
+    from utils.extract import extract_client_details, extract_serial_from_photo
     try:
-        for p in photos:
-            paths.append(await _download_photo(bot, p["file_id"]))
+        paths: list[str] = list(
+            await asyncio.gather(*[_download_photo(bot, p["file_id"]) for p in photos])
+        )
     except Exception as e:
-        _cleanup_paths(paths)
         STATE.clear(chat_id)
         await bot.send_message(chat_id, format_error("Download", str(e)))
         return
 
-    # ---- 2. Run vision on every photo in order ----
-    extractions: list[dict] = []
-    try:
-        from utils.extract import extract_serial_from_photo
-        for path in paths:
-            try:
-                ext = await asyncio.to_thread(extract_serial_from_photo, path)
-            except Exception as e:
-                logger.warning("Vision failed on %s: %s", path, e)
-                ext = {"serial_number": None, "item_code": None}
-            extractions.append(ext)
-    except Exception as e:
-        _cleanup_paths(paths)
-        STATE.clear(chat_id)
-        await bot.send_message(chat_id, format_error("Vision", str(e)))
-        return
+    # ---- 2+3. Vision on each photo + ticket extraction in parallel ----
+    async def _vision(path: str) -> dict:
+        try:
+            return await asyncio.to_thread(extract_serial_from_photo, path)
+        except Exception as e:
+            logger.warning("Vision failed on %s: %s", path, e)
+            return {"serial_number": None, "item_code": None}
 
+    vision_tasks = [_vision(p) for p in paths]
+    ticket_task = asyncio.to_thread(extract_client_details, caption)
+
+    # return_exceptions=True so a ticket failure doesn't suppress vision results
+    results = await asyncio.gather(*vision_tasks, ticket_task, return_exceptions=True)
+    *extractions, details_or_exc = results
+
+    # Check vision first — return early before worrying about ticket result
     items = collect_items_from_extractions(extractions)
     if not items:
         _cleanup_paths(paths)
@@ -637,15 +636,12 @@ async def _process_bookout(
         return
     state["items"] = items
 
-    # ---- 3. Ticket extraction ----
-    try:
-        from utils.extract import extract_client_details
-        details = await asyncio.to_thread(extract_client_details, caption)
-    except Exception as e:
+    if isinstance(details_or_exc, Exception):
         _cleanup_paths(paths)
         STATE.clear(chat_id)
-        await bot.send_message(chat_id, format_error("Ticket parse", str(e)))
+        await bot.send_message(chat_id, format_error("Ticket parse", str(details_or_exc)))
         return
+    details = details_or_exc
 
     required = ["full_name", "site_name", "unit_number"]
     missing = [k for k in required if not details.get(k)]
