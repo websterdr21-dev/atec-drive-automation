@@ -771,7 +771,8 @@ class TestATECNewSiteUploadAtRoot:
         fake_drive = _seeded_fake_drive()
         sites_id = fake_drive.ids["sites"]
         site_id = fake_drive.add_folder("Sunset Heights", sites_id)
-        # No Unit subfolder in the drive yet
+        # Existing Unit folder so sibling detection sees "Unit " prefix convention
+        fake_drive.add_folder("Unit 1", site_id)
 
         monkeypatch.setattr(bot_mod, "_get_drive", lambda: fake_drive)
         monkeypatch.setattr(bot_mod, "_drive_id", lambda: SHARED_DRIVE_ID)
@@ -833,6 +834,160 @@ class TestATECNewSiteUploadAtRoot:
         all_calls = [call[0][1] for call in ctx.bot.send_message.call_args_list]
         success_msg = all_calls[-1]
         assert "Booked out" in success_msg
+
+
+class TestATECNavToNonUnitSubfolderAutoCreatesUnit:
+    def test_nav_to_non_unit_subfolder_autocreates_unit(self, monkeypatch, tmp_path):
+        import utils.telegram_bot as bot_mod
+        import utils.extract as extract_mod
+        import utils.sheets as sheets_mod
+        import utils.drive_folders as df_mod
+
+        fake_drive = _seeded_fake_drive()
+        sites_id = fake_drive.ids["sites"]
+        site_id = fake_drive.add_folder("Sunset Heights", sites_id)
+        block_id = fake_drive.add_folder("Block A", site_id)
+        # Existing Unit folder so sibling detection sees "Unit " prefix convention
+        fake_drive.add_folder("Unit 1", block_id)
+
+        monkeypatch.setattr(bot_mod, "_get_drive", lambda: fake_drive)
+        monkeypatch.setattr(bot_mod, "_drive_id", lambda: SHARED_DRIVE_ID)
+        monkeypatch.setattr(
+            df_mod, "get_atec_site_folder",
+            lambda svc, drive_id, site_name: (site_id, False)
+        )
+
+        photo_path = _make_tmp_photo(tmp_path)
+        monkeypatch.setattr(
+            bot_mod, "_download_photo",
+            AsyncMock(return_value=photo_path)
+        )
+        monkeypatch.setattr(
+            extract_mod, "extract_serial_from_photo",
+            lambda path: {"serial_number": "SN-NESTED-001", "item_code": "ONT-N"}
+        )
+        details = dict(ATEC_DETAILS)
+        monkeypatch.setattr(
+            extract_mod, "extract_client_details",
+            lambda text: dict(details)
+        )
+        monkeypatch.setattr(
+            sheets_mod, "find_serial_number",
+            lambda svc, drive_id, serial: dict(STOCK_RESULT)
+        )
+        monkeypatch.setattr(
+            sheets_mod, "update_stock_row",
+            lambda svc, drive_id, serial, account: None
+        )
+
+        photo = _make_photo()
+        update = make_update(text="Ticket text", photos=[photo])
+        ctx = make_context()
+        asyncio.run(bot_mod.on_message(update, ctx))
+
+        state = bot_mod.STATE.get(42)
+        assert state is not None
+        assert state["step"] == STEP_NAV
+
+        # Navigate into "Block A" (a non-unit intermediate folder)
+        nav_update = make_update(text="1")
+        asyncio.run(bot_mod.on_message(nav_update, ctx))
+
+        state = bot_mod.STATE.get(42)
+        assert "Block A" in state["atec_nav_breadcrumb"]
+
+        # Press 'u' inside Block A — should auto-create Unit 7 inside it
+        upload_update = make_update(text="u")
+        asyncio.run(bot_mod.on_message(upload_update, ctx))
+
+        created_names = [
+            c["body"]["name"] for c in fake_drive.create_calls
+            if c.get("body", {}).get("mimeType") == "application/vnd.google-apps.folder"
+        ]
+        assert "Unit 7" in created_names
+
+        # Template must include {unit} so future bookouts resolve the right folder
+        assert bot_mod.SITES.has("Sunset Heights")
+        entry = bot_mod.SITES.get("Sunset Heights")
+        assert any("{unit}" in seg for seg in entry["path_template"])
+
+        all_calls = [call[0][1] for call in ctx.bot.send_message.call_args_list]
+        success_msg = all_calls[-1]
+        assert "Booked out" in success_msg
+
+
+class TestATECNavBareIdentifierConvention:
+    """When existing siblings use bare identifiers (no 'Unit ' prefix), the
+    auto-created folder should use the bare unit_number, not 'Unit N'."""
+
+    def test_bare_sibling_convention_creates_bare_folder(self, monkeypatch, tmp_path):
+        import utils.telegram_bot as bot_mod
+        import utils.extract as extract_mod
+        import utils.sheets as sheets_mod
+        import utils.drive_folders as df_mod
+
+        fake_drive = _seeded_fake_drive()
+        sites_id = fake_drive.ids["sites"]
+        site_id = fake_drive.add_folder("Summerly Court", sites_id)
+        floor_id = fake_drive.add_folder("0 Ground Floor", site_id)
+        # Siblings use bare identifiers — no "Unit " prefix
+        fake_drive.add_folder("G01", floor_id)
+        fake_drive.add_folder("G02", floor_id)
+
+        monkeypatch.setattr(bot_mod, "_get_drive", lambda: fake_drive)
+        monkeypatch.setattr(bot_mod, "_drive_id", lambda: SHARED_DRIVE_ID)
+        monkeypatch.setattr(
+            df_mod, "get_atec_site_folder",
+            lambda svc, drive_id, site_name: (site_id, False)
+        )
+
+        photo_path = _make_tmp_photo(tmp_path)
+        monkeypatch.setattr(
+            bot_mod, "_download_photo",
+            AsyncMock(return_value=photo_path)
+        )
+        monkeypatch.setattr(
+            extract_mod, "extract_serial_from_photo",
+            lambda path: {"serial_number": "SN-BARE-001", "item_code": "ONT-B"}
+        )
+        details = dict(ATEC_DETAILS)
+        monkeypatch.setattr(
+            extract_mod, "extract_client_details",
+            lambda text: dict(details)
+        )
+        monkeypatch.setattr(
+            sheets_mod, "find_serial_number",
+            lambda svc, drive_id, serial: dict(STOCK_RESULT)
+        )
+        monkeypatch.setattr(
+            sheets_mod, "update_stock_row",
+            lambda svc, drive_id, serial, account: None
+        )
+
+        photo = _make_photo()
+        update = make_update(text="Ticket text", photos=[photo])
+        ctx = make_context()
+        asyncio.run(bot_mod.on_message(update, ctx))
+
+        assert bot_mod.STATE.get(42)["step"] == STEP_NAV
+
+        # Navigate into "0 Ground Floor"
+        asyncio.run(bot_mod.on_message(make_update(text="1"), ctx))
+        assert "0 Ground Floor" in bot_mod.STATE.get(42)["atec_nav_breadcrumb"]
+
+        # Press 'u' — siblings are "G01", "G02" (no Unit prefix) → bare unit_number
+        asyncio.run(bot_mod.on_message(make_update(text="u"), ctx))
+
+        created_names = [
+            c["body"]["name"] for c in fake_drive.create_calls
+            if c.get("body", {}).get("mimeType") == "application/vnd.google-apps.folder"
+        ]
+        # Should create bare "7" (ATEC_DETAILS unit_number), NOT "Unit 7"
+        assert "7" in created_names
+        assert "Unit 7" not in created_names
+
+        all_calls = [call[0][1] for call in ctx.bot.send_message.call_args_list]
+        assert "Booked out" in all_calls[-1]
 
 
 class TestSerialCorrectionOCRMisread:

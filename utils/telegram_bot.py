@@ -1049,41 +1049,57 @@ async def _handle_nav_reply(
         # Learn the structure. Strip the leading site_name entry from
         # breadcrumb to get just the segments below Sites/[site_name]/.
         segments = state["atec_nav_breadcrumb"][1:]
-        if not segments:
-            # User pressed 'u' at the site root — auto-create Unit [N] subfolder
-            # instead of landing photos in the site root.
+        unit_number = state["unit_number"]
+        unit_name = f"Unit {unit_number}"
+
+        # If the user navigated into a folder that is already the unit folder
+        # (e.g. "Unit 7"), use it as-is. Otherwise auto-create Unit [N] inside
+        # the current folder — regardless of how many levels deep the user is.
+        last_seg = segments[-1] if segments else None
+        already_at_unit = bool(
+            last_seg and (
+                last_seg == unit_number
+                or last_seg == unit_name
+                or (last_seg.startswith("Unit ") and unit_number in last_seg)
+            )
+        )
+
+        if not already_at_unit:
             from utils.drive_folders import _find_or_create_folder
-            unit_name = f"Unit {state['unit_number']}"
+            # Infer naming convention from existing siblings: if any start with
+            # "Unit " (e.g. DE PLATTEKLOOF), match that pattern; otherwise use
+            # the bare unit identifier (e.g. SUMMERLY COURT: "G01", THE SOMERSET:
+            # "1 Aversham"). subs was already fetched for the current folder above.
+            has_unit_prefix = any(f["name"].lower().startswith("unit ") for f in subs)
+            folder_name = unit_name if has_unit_prefix else unit_number
             try:
-                unit_id, _ = await asyncio.to_thread(
+                new_id, _ = await asyncio.to_thread(
                     _find_or_create_folder,
-                    service, unit_name, state["atec_nav_current_id"], _drive_id(),
+                    service, folder_name, state["atec_nav_current_id"], _drive_id(),
                 )
             except Exception as e:
                 _cleanup_paths(state.get("_tmp_paths", []))
                 STATE.clear(chat_id)
                 await bot.send_message(
-                    chat_id, format_error("Drive folder", f"Could not create {unit_name}: {e}")
+                    chat_id, format_error("Drive folder", f"Could not create {folder_name}: {e}")
                 )
                 return
-            folder_id = unit_id
-            SITES.learn(
-                state["site_name"], [unit_name], state["unit_number"],
-                learned_by=update.effective_user.id if update.effective_user else None,
-            )
+            folder_id = new_id
+            learned_segments = segments + [folder_name]
         else:
             folder_id = state["atec_nav_current_id"]
-            SITES.learn(
-                state["site_name"], segments, state["unit_number"],
-                learned_by=update.effective_user.id if update.effective_user else None,
-            )
+            learned_segments = segments
+
+        SITES.learn(
+            state["site_name"], learned_segments, unit_number,
+            learned_by=update.effective_user.id if update.effective_user else None,
+        )
 
         state["folder_id"] = folder_id
         state["folder_url"] = f"https://drive.google.com/drive/folders/{folder_id}"
         STATE.set(chat_id, state)
 
-        sub_segments = state["atec_nav_breadcrumb"][1:] or [f"Unit {state['unit_number']} (auto-created)"]
-        template_str = " / ".join(sub_segments)
+        template_str = " / ".join(learned_segments) if learned_segments else f"{unit_name} (auto-created)"
         await bot.send_message(
             chat_id,
             f"Structure saved for {state['site_name']}: {template_str}\n"
